@@ -6,7 +6,6 @@ import { supabase } from '@/supabase/client';
 import LoginPage from '@/components/LoginPage'; 
 import AppLayout from '@/components/AppLayout'; 
 
-// This is a placeholder for your main dashboard content
 const Dashboard = () => <div>Your Dashboard Content Goes Here</div>;
 
 export default function App() {
@@ -31,7 +30,7 @@ export default function App() {
   }, []);
 
   if (loading) {
-    return <div>Loading...</div>; // Or a proper loading spinner
+    return <div>Loading...</div>;
   }
 
   if (!user) {
@@ -45,7 +44,6 @@ export default function App() {
       activeTab="dashboard" // Manage active tab state here
       onTabChange={(tab:any) => console.log(tab)} // Manage active tab state here
     >
-      {/* This is where your page content will go, like the dashboard */}
       <Dashboard />
     </AppLayout>
   );
