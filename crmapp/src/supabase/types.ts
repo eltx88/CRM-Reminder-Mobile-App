@@ -27,84 +27,22 @@ export type Database = {
           id?: string
           name?: string | null
         }
-        Relationships: [
-          {
-            foreignKeyName: "admins_id_fkey"
-            columns: ["id"]
-            isOneToOne: true
-            referencedRelation: "users"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      clients: {
-        Row: {
-          address: string | null
-          admin_id: string
-          age: number | null
-          created_at: string
-          email: string | null
-          id: number
-          issue: string | null
-          name: string
-          notes: string | null
-          package_id: number | null // Added this field
-          phone: string | null
-        }
-        Insert: {
-          address?: string | null
-          admin_id: string
-          age?: number | null
-          created_at?: string
-          email?: string | null
-          id?: number
-          issue?: string | null
-          name: string
-          notes?: string | null
-          package_id?: number | null // Added this field
-          phone?: string | null
-        }
-        Update: {
-          address?: string | null
-          admin_id?: string
-          age?: number | null
-          created_at?: string
-          email?: string | null
-          id?: number
-          issue?: string | null
-          name?: string
-          notes?: string | null
-          package_id?: number | null // Added this field
-          phone?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "clients_admin_id_fkey"
-            columns: ["admin_id"]
-            isOneToOne: false
-            referencedRelation: "admins"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "clients_package_id_fkey" // Added this relationship
-            columns: ["package_id"]
-            isOneToOne: false
-            referencedRelation: "packages"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      client_shares: { // Added this entire table definition
+      client_shares: {
         Row: {
           client_id: number
+          primary_admin_id: string | null
           shared_with_admin_id: string
         }
         Insert: {
           client_id: number
+          primary_admin_id?: string | null
           shared_with_admin_id: string
         }
         Update: {
           client_id?: number
+          primary_admin_id?: string | null
           shared_with_admin_id?: string
         }
         Relationships: [
@@ -116,10 +54,77 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "client_shares_primary_admin_id_fkey"
+            columns: ["primary_admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "client_shares_shared_with_admin_id_fkey"
             columns: ["shared_with_admin_id"]
             isOneToOne: false
             referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          admin_id: string | null
+          age: number | null
+          created_at: string
+          email: string | null
+          id: number
+          issue: string | null
+          lifewave_id: number | null
+          name: string
+          notes: string | null
+          package_id: number | null
+          phone: string | null
+          sponsor: string | null
+        }
+        Insert: {
+          admin_id?: string | null
+          age?: number | null
+          created_at?: string
+          email?: string | null
+          id?: number
+          issue?: string | null
+          lifewave_id?: number | null
+          name: string
+          notes?: string | null
+          package_id?: number | null
+          phone?: string | null
+          sponsor?: string | null
+        }
+        Update: {
+          admin_id?: string | null
+          age?: number | null
+          created_at?: string
+          email?: string | null
+          id?: number
+          issue?: string | null
+          lifewave_id?: number | null
+          name?: string
+          notes?: string | null
+          package_id?: number | null
+          phone?: string | null
+          sponsor?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "clients_admin_id_fkey"
+            columns: ["admin_id"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "clients_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
             referencedColumns: ["id"]
           },
         ]
@@ -163,21 +168,33 @@ export type Database = {
       orders: {
         Row: {
           client_id: number
-          expiry_date: string | null
+          collection_date: string | null
+          enrollment_date: string
+          expiry_date: string
           id: number
-          order_date: string
+          payment_date: string | null
+          payment_mode: string | null
+          shipping_location: string | null
         }
         Insert: {
           client_id: number
-          expiry_date?: string | null
+          collection_date?: string | null
+          enrollment_date?: string
+          expiry_date: string
           id?: number
-          order_date?: string
+          payment_date?: string | null
+          payment_mode?: string | null
+          shipping_location?: string | null
         }
         Update: {
           client_id?: number
-          expiry_date?: string | null
+          collection_date?: string | null
+          enrollment_date?: string
+          expiry_date?: string
           id?: number
-          order_date?: string
+          payment_date?: string | null
+          payment_mode?: string | null
+          shipping_location?: string | null
         }
         Relationships: [
           {
@@ -281,7 +298,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_dashboard_data: {
+        Args: { admin_uuid: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
@@ -291,8 +311,6 @@ export type Database = {
     }
   }
 }
-
-// The rest of the file remains the same...
 
 type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
 

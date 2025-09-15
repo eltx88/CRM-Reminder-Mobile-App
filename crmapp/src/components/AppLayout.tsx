@@ -1,21 +1,17 @@
+"use client";
+
 import React from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
 import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { 
   LayoutDashboard, 
   Users, 
   Bell, 
   LogOut, 
-  User as UserIcon,
   Plus,
-  Settings
+  CalendarIcon,
+  Settings // Added Settings icon
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -43,53 +39,38 @@ export default function AppLayout({
     { id: 'clients', label: 'Clients', icon: Users },
     { id: 'add', label: '', icon: Plus, isCenter: true },
     { id: 'reminders', label: 'Alerts', icon: Bell },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
   ];
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      {/* Header */}
-      <header className="bg-header text-header-foreground px-4 py-6 relative">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-xl font-bold">ClientOrbit CRM</h1>
-            <p className="text-sm opacity-90">Welcome back!</p>
-          </div>
-          <div className="flex items-center space-x-3">
-            <Button 
-              size="sm" 
-              variant="secondary" 
-              className="bg-white/20 text-white border-white/30 hover:bg-white/30"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  className="text-white hover:bg-white/20 relative"
-                >
-                  <Bell className="h-4 w-4" />
-                  <span className="absolute -top-1 -right-1 bg-warning text-warning-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                    8
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      {/* New Fixed Header Bar */}
+      <header className="fixed top-0 left-0 right-0 h-16 bg-primary text-primary-foreground flex items-center justify-between px-4 z-50 shadow-md">
+        <div>
+          <h1 className="text-xl font-bold"></h1>
+        </div>
+        <div className="flex items-center space-x-2">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={() => onTabChange('settings')}
+            aria-label="Settings"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={handleLogout}
+            aria-label="Logout"
+          >
+            <LogOut className="h-5 w-5" />
+          </Button>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="flex-1 overflow-auto pb-20">
+      {/* Main Content Area - Added padding-top to avoid being hidden by the header */}
+      <main className="flex-1 overflow-auto pb-20 pt-16">
         {children}
       </main>
 
@@ -105,8 +86,9 @@ export default function AppLayout({
               return (
                 <button
                   key={item.id}
-                  onClick={() => onTabChange('clients')}
-                  className="flex items-center justify-center w-12 h-12 bg-primary text-primary-foreground rounded-full shadow-lg"
+                  onClick={() => onTabChange('add-client')} // A more descriptive action
+                  className="flex items-center justify-center w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg transform -translate-y-4 border-4 border-background"
+                  aria-label="Add Client"
                 >
                   <Icon className="h-6 w-6" />
                 </button>
@@ -117,7 +99,7 @@ export default function AppLayout({
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`flex flex-col items-center py-2 px-3 rounded-lg transition-colors ${
+                className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-colors ${
                   isActive
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'

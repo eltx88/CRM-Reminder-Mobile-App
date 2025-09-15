@@ -5,12 +5,20 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import LoginPage from '@/components/LoginPage'; 
 import AppLayout from '@/components/AppLayout'; 
+import DashboardPage from '@/components/dashboard/Dashboard'
 
-const Dashboard = () => <div>Your Dashboard Content Goes Here</div>;
+// Placeholder components for other views
+const ClientsPage = () => <div className="p-4">Clients Page Content</div>;
+const RemindersPage = () => <div className="p-4">Reminders Page Content</div>;
+const CalendarPage = () => <div className="p-4">Calendar Page Content</div>;
+
+type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeView, setActiveView] = useState<View>('dashboard');
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -29,22 +37,61 @@ export default function App() {
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
   if (!user) {
     return <LoginPage onLogin={(loggedInUser:any) => setUser(loggedInUser)} />;
   }
+
+  if (loading) {
+    // A simple loading state
+    return (
+        <div className="min-h-screen bg-background flex items-center justify-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        </div>
+    );
+  }
+
+  const handleTabChange = (tab: string) => {
+    setActiveView(tab as View);
+    // Reset selected client if we navigate away from the detail view
+    if (tab !== 'client-detail') {
+      setSelectedClientId(null);
+    }
+  };
+
+  const handleClientClick = (clientId: number) => {
+    setSelectedClientId(clientId);
+    setActiveView('client-detail');
+  };
+
+  const renderContent = () => {
+    // A real client detail page would be more complex
+    if (activeView === 'client-detail') {
+        return <div className="p-4">Showing details for client ID: {selectedClientId}</div>;
+    }
+
+    switch (activeView) {
+      case 'dashboard':
+        return <DashboardPage user={user!} onClientClick={handleClientClick} />;
+      case 'clients':
+        return <ClientsPage />;
+      case 'reminders':
+        return <RemindersPage />;
+      case 'calendar':
+        return <CalendarPage />;
+      default:
+        // Fallback to dashboard
+        return <DashboardPage user={user!} onClientClick={handleClientClick} />;
+    }
+  };
 
   return (
     <AppLayout 
       user={user} 
       onLogout={() => supabase.auth.signOut()}
-      activeTab="dashboard" // Manage active tab state here
-      onTabChange={(tab:any) => console.log(tab)} // Manage active tab state here
+      activeTab={activeView}
+      onTabChange={handleTabChange}
     >
-      <Dashboard />
+      {renderContent()}
     </AppLayout>
   );
 }
