@@ -1,11 +1,12 @@
 "use client"
 
 import * as React from "react"
-import { Pie, PieChart } from "recharts"
+import { LabelList, Pie, PieChart } from "recharts"
 
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
@@ -19,101 +20,121 @@ import {
 interface DonutChartCardProps {
   title: string;
   data: { name: string; value: number }[] | null | undefined;
+  description?: string;
+  colorScheme?: 'default' | 'packages' | 'clients';
 }
 
-// Define a consistent color palette
-const CHART_COLORS = [
-  "var(--chart-1)",
-  "var(--chart-2)",
-  "var(--chart-3)",
-  "var(--chart-4)",
-  "var(--chart-5)",
-];
+export function DonutChartCard({ title, data, description, colorScheme = 'default' }: DonutChartCardProps) {
+  // Package color mapping
+  const packageColors = {
+    'Core': '#60A5FA',      // Light blue
+    'Advanced': '#C0C0C0',  // Silver
+    'Premium': '#FFD700',   // Gold
+    'Others': '#1E40AF'     // Dark blue
+  };
 
-export function DonutChartCard({ title, data }: DonutChartCardProps) {
-  const chartData = data || [];
+  const clientColors = {
+    'My Clients': '#60A5FA',      // Light blue
+    'Clients Shared with Me': '#1E40AF',  // dark blue
+  };
+
+  const getItemColor = (itemName: string, index: number) => {
+    if (colorScheme === 'packages') {
+      // Try to match exact package name first
+      const normalizedName = itemName.toLowerCase();
+      for (const [packageName, color] of Object.entries(packageColors)) {
+        if (normalizedName === packageName.toLowerCase()) {
+          return color;
+        }
+      }
+      // If no exact match, use Others color
+      return packageColors.Others;
+    }
+    if (colorScheme === 'clients') {
+      // Try to match exact client type name first
+      const normalizedName = itemName.toLowerCase();
+      for (const [clientType, color] of Object.entries(clientColors)) {
+        if (normalizedName === clientType.toLowerCase()) {
+          return color;
+        }
+      }
+      // If no exact match, use default color
+      return `var(--chart-${(index % 5) + 1})`;
+    }
+    // Default color scheme
+    return `var(--chart-${(index % 5) + 1})`;
+  };
+
+  const chartData = React.useMemo(() => {
+    if (!data || data.length === 0) return [];
+    
+    return data.map((item, index) => ({
+      name: item.name,
+      value: item.value,
+      fill: getItemColor(item.name, index),
+    }));
+  }, [data, colorScheme]);
   
   const chartConfig = React.useMemo(() => {
-    const config: ChartConfig = {};
+    const config: ChartConfig = {
+      value: {
+        label: "Count",
+      },
+    };
+    
     if (chartData) {
       chartData.forEach((item, index) => {
-        config[item.name] = {
+        const configKey = item.name.toLowerCase().replace(/\s+/g, '');
+        config[configKey] = {
           label: item.name,
-          color: CHART_COLORS[index % CHART_COLORS.length],
+          color: getItemColor(item.name, index),
         };
       });
     }
     return config;
-  }, [chartData]);
+  }, [chartData, colorScheme]);
 
   const totalValue = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.value, 0)
   }, [chartData]);
 
   return (
-    <Card className="flex flex-col col-span-2 sm:col-span-1">
+    <Card className="flex flex-col">
       <CardHeader className="items-center pb-0">
         <CardTitle>{title}</CardTitle>
+        {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         {totalValue > 0 ? (
           <ChartContainer
             config={chartConfig}
-            className="mx-auto aspect-square max-h-[200px]"
+            className="mx-auto aspect-square max-h-[250px] [&_.recharts-text]:fill-background"
           >
             <PieChart>
               <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
+                content={<ChartTooltipContent nameKey="value" hideLabel />}
               />
-              <Pie
-                data={chartData}
-                dataKey="value"
-                nameKey="name"
-                innerRadius={50}
-                strokeWidth={5}
-                labelLine={false}
-                label={({
-                  cx,
-                  cy,
-                  midAngle,
-                  innerRadius,
-                  outerRadius,
-                  percent,
-                }) => {
-                  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-                  const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-                  const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
-                  if (percent < 0.05) return null; // Hide small labels
-                  return (
-                    <text
-                      x={x}
-                      y={y}
-                      fill="white"
-                      textAnchor={x > cx ? "start" : "end"}
-                      dominantBaseline="central"
-                      className="text-xs font-bold"
-                    >
-                      {`${(percent * 100).toFixed(0)}%`}
-                    </text>
-                  );
-                }}
-              >
-                <text
-                  x="50%"
-                  y="50%"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-foreground text-2xl font-bold"
-                >
-                  {totalValue.toLocaleString()}
-                </text>
+              <Pie data={chartData} dataKey="value" nameKey="name">
+                <LabelList
+                  dataKey="name"
+                  className="fill-background"
+                  stroke="none"
+                  fontSize={12}
+                  formatter={(value: string) => {
+                    // Show package name and count
+                    const item = chartData.find(d => d.name === value);
+                    return item ? `${value}` : value;
+                  }}
+                />
               </Pie>
             </PieChart>
           </ChartContainer>
         ) : (
-          <div className="flex items-center justify-center h-[200px] text-muted-foreground">
-            No data
+          <div className="flex items-center justify-center h-[250px] text-muted-foreground">
+            <div className="text-center">
+              <div className="text-4xl mb-2 opacity-20">📦</div>
+              <div>No package data available</div>
+            </div>
           </div>
         )}
       </CardContent>

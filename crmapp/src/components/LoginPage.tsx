@@ -78,7 +78,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       <Card className="w-full max-w-md shadow-card">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold text-primary">
-            {isSignUp ? 'Create Admin Account' : 'Sales Admin Login'}
+            {isSignUp ? 'Create Admin Account' : 'Admin Login'}
           </CardTitle>
           <CardDescription>
             {isSignUp ? 'Enter your details to register' : 'Enter your credentials to access the CRM system'}
