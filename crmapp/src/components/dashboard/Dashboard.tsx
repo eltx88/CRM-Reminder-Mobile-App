@@ -20,14 +20,11 @@ import ClientCard from './ClientCard';
 import { DonutChartCard } from './DonutChartCard';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { 
-  Search, 
-  Users, 
+  Search,
   ShoppingBag, 
   RefreshCw,
-  Share2,
   Bell,
   Package,
-  Calendar,
   TrendingUp
 } from 'lucide-react';
 

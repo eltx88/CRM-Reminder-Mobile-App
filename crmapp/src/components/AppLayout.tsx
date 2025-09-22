@@ -11,7 +11,8 @@ import {
   LogOut, 
   Plus,
   CalendarIcon,
-  Settings // Added Settings icon
+  Settings,
+  Package
 } from 'lucide-react';
 
 interface AppLayoutProps {
@@ -37,7 +38,7 @@ export default function AppLayout({
   const navigationItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'add', label: '', icon: Plus, isCenter: true },
+    { id: 'orders', label: 'Orders', icon:Package},
     { id: 'reminders', label: 'Alerts', icon: Bell },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
   ];
@@ -79,21 +80,7 @@ export default function AppLayout({
         <div className="flex items-center justify-around">
           {navigationItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;
-            const isCenter = item.isCenter;
-            
-            if (isCenter) {
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onTabChange('add-client')} // A more descriptive action
-                  className="flex items-center justify-center w-14 h-14 bg-primary text-primary-foreground rounded-full shadow-lg transform -translate-y-4 border-4 border-background"
-                  aria-label="Add Client"
-                >
-                  <Icon className="h-6 w-6" />
-                </button>
-              );
-            }
+            const isActive = activeTab === item.id;       
             
             return (
               <button
