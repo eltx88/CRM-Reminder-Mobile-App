@@ -108,12 +108,12 @@ export interface ClientFormData {
 // Component Props Interfaces
 export interface DashboardPageProps {
   onClientClick: (clientId: number) => void;
-  user: any; // Replace with your User type from Supabase
+  user: any;
 }
 
 export interface ClientsPageProps {
-  user: any; // Replace with your User type from Supabase
-  onClientClick: (clientId: number) => void;
+  user: any;
+  onCreateReminder: (clientId: number, clientName: string) => void;
 }
 
 export interface CreateClientDialogProps {
@@ -135,6 +135,7 @@ export interface ClientCardProps {
   client: Client;
   onClick: () => void;
   showManaged: boolean;
+  onCreateReminder: (clientId: number, clientName: string) => void;
 }
 
 // Chart Data Interface
@@ -142,3 +143,36 @@ export interface ChartDataItem {
   name: string;
   value: number;
 }
+
+// Reminder Interfaces
+export interface Reminder {
+  id: number;
+  client_id: number;
+  client_name: string;
+  client_phone: string | null;
+  order_id: number | null;
+  reminder_type: 'FOLLOW_UP' | 'EXPIRY';
+  trigger_date: string;
+  message: string;
+  status: 'PENDING' | 'COMPLETED' | 'DISMISSED';
+  created_at: string;
+}
+
+export interface CreateReminderData {
+  client_id: number;
+  order_id?: number;
+  reminder_type: 'FOLLOW_UP' | 'EXPIRY';
+  trigger_date: string;
+  message: string;
+}
+
+export interface ReminderCardProps {
+  reminder: Reminder;
+  onEdit: (reminder: Reminder) => void;
+  onDelete: (reminderId: number) => void;
+  onStatusChange: (reminderId: number, status: 'PENDING' | 'COMPLETED' | 'DISMISSED') => void;
+  onWhatsAppClick: (phone: string) => void;
+}
+
+export type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';
+export type ReminderSortBy = 'trigger_date' | 'created_at' | 'client_name';

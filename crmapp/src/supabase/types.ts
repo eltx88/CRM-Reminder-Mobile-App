@@ -72,8 +72,8 @@ export type Database = {
       clients: {
         Row: {
           admin_id: string | null
-          age: number | null
           created_at: string
+          dob: string | null
           email: string | null
           id: number
           issue: string | null
@@ -86,8 +86,8 @@ export type Database = {
         }
         Insert: {
           admin_id?: string | null
-          age?: number | null
           created_at?: string
+          dob?: string | null
           email?: string | null
           id?: number
           issue?: string | null
@@ -100,8 +100,8 @@ export type Database = {
         }
         Update: {
           admin_id?: string | null
-          age?: number | null
           created_at?: string
+          dob?: string | null
           email?: string | null
           id?: number
           issue?: string | null
@@ -298,8 +298,140 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_client: {
+        Args:
+          | {
+              admin_uuid: string
+              client_age?: number
+              client_email?: string
+              client_issue?: string
+              client_lifewave_id?: number
+              client_name: string
+              client_notes?: string
+              client_package_id?: number
+              client_phone?: string
+              client_sponsor?: string
+            }
+          | {
+              admin_uuid: string
+              client_dob?: string
+              client_email?: string
+              client_issue?: string
+              client_lifewave_id?: number
+              client_name: string
+              client_notes?: string
+              client_package_id?: number
+              client_phone?: string
+              client_sponsor?: string
+            }
+        Returns: Json
+      }
+      create_reminder: {
+        Args: {
+          admin_uuid: string
+          p_client_id: number
+          p_message: string
+          p_order_id?: number
+          p_reminder_type: string
+          p_trigger_date: string
+        }
+        Returns: Json
+      }
+      delete_reminder: {
+        Args: { admin_uuid: string; p_reminder_id: number }
+        Returns: Json
+      }
+      get_client_details: {
+        Args: { admin_uuid: string; client_id: number }
+        Returns: Json
+      }
+      get_clients_data: {
+        Args: { admin_uuid: string }
+        Returns: Json
+      }
       get_dashboard_data: {
         Args: { admin_uuid: string }
+        Returns: Json
+      }
+      get_packages: {
+        Args: Record<PropertyKey, never>
+        Returns: Json
+      }
+      get_pending_reminder_count: {
+        Args: { admin_uuid: string }
+        Returns: number
+      }
+      get_reminder_details: {
+        Args: { admin_uuid: string; p_reminder_id: number }
+        Returns: Json
+      }
+      get_reminder_stats: {
+        Args: { admin_uuid: string }
+        Returns: Json
+      }
+      get_reminders_for_admin: {
+        Args: {
+          admin_uuid: string
+          reminder_type_filter?: string
+          search_term?: string
+          sort_by?: string
+          sort_order?: string
+        }
+        Returns: {
+          client_id: number
+          client_name: string
+          client_phone: string
+          created_at: string
+          id: number
+          message: string
+          order_id: number
+          reminder_type: string
+          status: string
+          trigger_date: string
+        }[]
+      }
+      mark_reminder_completed: {
+        Args: { admin_uuid: string; p_reminder_id: number }
+        Returns: Json
+      }
+      update_client: {
+        Args:
+          | {
+              admin_uuid: string
+              client_age?: number
+              client_email?: string
+              client_id: number
+              client_issue?: string
+              client_lifewave_id?: number
+              client_name?: string
+              client_notes?: string
+              client_package_id?: number
+              client_phone?: string
+              client_sponsor?: string
+            }
+          | {
+              admin_uuid: string
+              client_dob?: string
+              client_email?: string
+              client_id: number
+              client_issue?: string
+              client_lifewave_id?: number
+              client_name?: string
+              client_notes?: string
+              client_package_id?: number
+              client_phone?: string
+              client_sponsor?: string
+            }
+        Returns: Json
+      }
+      update_reminder: {
+        Args: {
+          admin_uuid: string
+          p_message?: string
+          p_reminder_id: number
+          p_status?: string
+          p_trigger_date?: string
+        }
         Returns: Json
       }
     }

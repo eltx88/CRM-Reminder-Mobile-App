@@ -79,7 +79,7 @@ const fetchClientsData = async (userId: string): Promise<ClientsData> => {
   };
 };
 
-export default function ClientsPage({ user, onClientClick }: ClientsPageProps) {
+export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps) {
   const [activeTab, setActiveTab] = useState('managed');
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date-joined-latest');
@@ -198,9 +198,6 @@ export default function ClientsPage({ user, onClientClick }: ClientsPageProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Clients</h1>
-          <p className="text-muted-foreground">
-            Manage your clients and view clients shared with you
-          </p>
         </div>
         <Button variant="outline" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4 mr-2" />
@@ -319,6 +316,7 @@ export default function ClientsPage({ user, onClientClick }: ClientsPageProps) {
                   client={client}
                   onClick={() => handleClientClick(client)}
                   showManaged={true}
+                  onCreateReminder={onCreateReminder}
                 />
               ))}
             </div>
@@ -349,6 +347,7 @@ export default function ClientsPage({ user, onClientClick }: ClientsPageProps) {
                   client={client}
                   onClick={() => handleClientClick(client)}
                   showManaged={false}
+                  onCreateReminder={onCreateReminder}
                 />
               ))}
             </div>
@@ -377,7 +376,7 @@ export default function ClientsPage({ user, onClientClick }: ClientsPageProps) {
 }
 
 // Client Card Component
-function ClientCard({ client, onClick, showManaged }: ClientCardProps) {
+function ClientCard({ client, onClick, showManaged, onCreateReminder }: ClientCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -405,7 +404,7 @@ function ClientCard({ client, onClick, showManaged }: ClientCardProps) {
 
   const handleCreateReminder = (e: React.MouseEvent) => {
     e.stopPropagation(); 
-    console.log('Create reminder for client:', client.id);
+    onCreateReminder(client.id, client.name);
   };
 
   const handleCreateOrder = (e: React.MouseEvent) => {
