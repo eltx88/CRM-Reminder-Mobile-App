@@ -432,6 +432,18 @@ export type Database = {
         Args: { admin_uuid: string; p_client_id: number }
         Returns: Json
       }
+      get_client_with_package_details: {
+        Args: { admin_uuid_param: string; client_id_param: number }
+        Returns: {
+          client_email: string
+          client_id: number
+          client_name: string
+          client_phone: string
+          package_id: number
+          package_name: string
+          package_points: number
+        }[]
+      }
       get_clients_data: {
         Args: { admin_uuid: string }
         Returns: Json

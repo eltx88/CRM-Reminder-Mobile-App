@@ -53,6 +53,7 @@ export default function CreateOrderDialog({
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [clientSearchTerm, setClientSearchTerm] = useState('');
     const [showClientDropdown, setShowClientDropdown] = useState(false);
+    const [isExpiryDateManuallyEdited, setIsExpiryDateManuallyEdited] = useState(false);
     const [expandedFields, setExpandedFields] = useState<{
       payment_mode: boolean;
       shipping_location: boolean;
@@ -158,6 +159,17 @@ export default function CreateOrderDialog({
     setFormData(prev => ({ ...prev, client_id: client.id.toString() }));
     setShowClientDropdown(false);
   };
+
+  // Handle manual expiry date changes
+  const handleExpiryDateChange = (value: string) => {
+    setFormData(prev => ({ ...prev, expiry_date: value }));
+    setIsExpiryDateManuallyEdited(true);
+  };
+
+  // Reset manual edit flag when order items change
+  useEffect(() => {
+    setIsExpiryDateManuallyEdited(false);
+  }, [formData.order_items]);
 
   // Toggle individual field expansion
   const toggleField = (fieldName: keyof typeof expandedFields) => {
@@ -283,10 +295,41 @@ export default function CreateOrderDialog({
     e.preventDefault();
     setError(null);
 
-    // 1. Validate form data with Zod
+    // 1. Generate order items string for notes
+    const generateOrderItemsString = () => {
+      const validItems = formData.order_items.filter(item => item.product_id !== 0);
+      if (validItems.length === 0) return '';
+      
+      const itemsString = validItems.map(item => {
+        const product = products.find(p => p.id === item.product_id);
+        return product ? `${product.name} x${item.quantity}` : `Unknown Product x${item.quantity}`;
+      }).join(', ');
+      
+      return ` Order Items: [${itemsString}]`;
+    };
+
+    // 2. Prepare notes with order items
+    const orderItemsString = generateOrderItemsString();
+    
+    // Remove existing "Order Items:" section if it exists (handle both \n\n and \n patterns)
+    const cleanNotes = formData.notes 
+      ? formData.notes
+          .replace(/\n\nOrder Items: \[[\s\S]*?\]/g, '')  // Remove with double line break
+          .replace(/\nOrder Items: \[[\s\S]*?\]/g, '')   // Remove with single line break
+          .replace(/Order Items: \[[\s\S]*?\]/g, '')     // Remove at start of string
+          .trim()
+      : '';
+    
+    // Append new order items
+    const finalNotes = cleanNotes 
+      ? `${cleanNotes}\n\n${orderItemsString}`
+      : orderItemsString;
+
+    // 3. Validate form data with Zod
     const validationResult = orderSchema.safeParse({
       ...formData,
-      client_id: selectedClient ? selectedClient.id.toString() : ''
+      client_id: selectedClient ? selectedClient.id.toString() : '',
+      notes: finalNotes
     });
 
     if (!validationResult.success) {
@@ -295,7 +338,7 @@ export default function CreateOrderDialog({
       return;
     }
 
-    // 2. Use validated and transformed data for the RPC call
+    // 4. Use validated and transformed data for the RPC call
     const validatedData = validationResult.data;
 
     try {
@@ -347,16 +390,18 @@ export default function CreateOrderDialog({
     };
   }, []);
 
-  // Auto-calculate expiry date when order items or enrollment date changes
+  // Auto-calculate expiry date when order items or enrollment date changes (only if not manually edited)
   useEffect(() => {
-    const calculatedExpiryDate = calculateExpiryDate();
-    if (calculatedExpiryDate && calculatedExpiryDate !== formData.expiry_date) {
-      setFormData(prev => ({
-        ...prev,
-        expiry_date: calculatedExpiryDate
-      }));
+    if (!isExpiryDateManuallyEdited) {
+      const calculatedExpiryDate = calculateExpiryDate();
+      if (calculatedExpiryDate && calculatedExpiryDate !== formData.expiry_date) {
+        setFormData(prev => ({
+          ...prev,
+          expiry_date: calculatedExpiryDate
+        }));
+      }
     }
-  }, [formData.order_items, formData.enrollment_date, products]);
+  }, [formData.order_items, formData.enrollment_date, products, isExpiryDateManuallyEdited]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -605,18 +650,20 @@ export default function CreateOrderDialog({
             />
             </div>
             <div>
-            <Label htmlFor="expiry_date">Expiry Date * (Suggested)</Label>
+            <Label htmlFor="expiry_date">Expiry Date * {isExpiryDateManuallyEdited ? '(Manual)' : '(Auto-calculated)'}</Label>
             <Input
-                className="mt-2 bg-gray-50"
+                className="mt-2"
                 id="expiry_date"
                 type="date"
                 value={formData.expiry_date}
-                onChange={(e) => setFormData(prev => ({ ...prev, expiry_date: e.target.value }))}
-                readOnly
-                title="Expiry date is automatically calculated based on order items and enrollment date"
+                onChange={(e) => handleExpiryDateChange(e.target.value)}
+                title={isExpiryDateManuallyEdited ? "Manually edited - will auto-update when order items change" : "Automatically calculated based on order items and enrollment date"}
             />
             <p className="text-xs text-gray-500 mt-1">
-                Calculated based on product durations and quantities
+                {isExpiryDateManuallyEdited 
+                  ? "Manually edited - will auto-update when order items change" 
+                  : "Calculated based on product durations and quantities"
+                }
             </p>
             </div>
         </div>

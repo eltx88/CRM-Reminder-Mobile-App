@@ -31,7 +31,6 @@ interface Reminder {
   trigger_date: string;
   message: string;
   status: 'PENDING' | 'COMPLETED' | 'DISMISSED';
-  created_at: string;
 }
 
 interface EditReminderDialogProps {

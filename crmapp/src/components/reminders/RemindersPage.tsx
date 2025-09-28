@@ -21,7 +21,6 @@ interface Reminder {
   trigger_date: string;
   message: string;
   status: 'PENDING' | 'COMPLETED' | 'DISMISSED';
-  created_at: string;
 }
 
 type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';
@@ -100,8 +99,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
             ? 'COMPLETED'
             : r.status === 'DISMISSED'
             ? 'DISMISSED'
-            : 'PENDING',
-        created_at: r.created_at,
+            : 'PENDING'
       }));
       setReminders(reminders);
       
