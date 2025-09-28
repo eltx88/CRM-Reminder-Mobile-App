@@ -5,20 +5,22 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import LoginPage from '@/components/LoginPage'; 
 import AppLayout from '@/components/AppLayout'; 
-import DashboardPage from '@/components/dashboard/Dashboard'
+import DashboardPage from '@/components/dashboard/Dashboard';
+import ClientsPage from '@/components/clients/ClientsPage';
+import RemindersPage from '@/components/reminders/RemindersPage';
+import OrdersPage from '@/components/orders/OrdersPage';
 
 // Placeholder components for other views
-const ClientsPage = () => <div className="p-4">Clients Page Content</div>;
-const RemindersPage = () => <div className="p-4">Reminders Page Content</div>;
 const CalendarPage = () => <div className="p-4">Calendar Page Content</div>;
-
-type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail';
+type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail'| 'order';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [createReminderOpen, setCreateReminderOpen] = useState(false);
+  const [createReminderSeed, setCreateReminderSeed] = useState<{ clientId: number; clientName: string } | null>(null);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -42,7 +44,6 @@ export default function App() {
   }
 
   if (loading) {
-    // A simple loading state
     return (
         <div className="min-h-screen bg-background flex items-center justify-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -63,24 +64,31 @@ export default function App() {
     setActiveView('client-detail');
   };
 
-  const renderContent = () => {
-    // A real client detail page would be more complex
-    if (activeView === 'client-detail') {
-        return <div className="p-4">Showing details for client ID: {selectedClientId}</div>;
-    }
+  const handleCreateReminder = (clientId: number, clientName: string) => {
+    setCreateReminderSeed({ clientId, clientName });
+    setCreateReminderOpen(true);
+    setActiveView('reminders'); // Switch to reminders view
+  };
 
+  const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
         return <DashboardPage user={user!} onClientClick={handleClientClick} />;
       case 'clients':
-        return <ClientsPage />;
+        return <ClientsPage user={user!} onCreateReminder={handleCreateReminder} />;
       case 'reminders':
-        return <RemindersPage />;
+        return <RemindersPage 
+        user={user!} 
+        createDialogOpen={createReminderOpen}
+        onCreateDialogChange={setCreateReminderOpen}
+        createSeed={createReminderSeed || undefined}
+      />;
       case 'calendar':
         return <CalendarPage />;
+      case 'order':
+      return <OrdersPage user={user} />;
       default:
-        // Fallback to dashboard
-        return <DashboardPage user={user!} onClientClick={handleClientClick} />;
+        return <OrdersPage user={user!}/>;
     }
   };
 

@@ -29,6 +29,58 @@ export type Database = {
         }
         Relationships: []
       }
+      client_package_history: {
+        Row: {
+          client_id: number
+          created_at: string | null
+          created_by_uuid: string | null
+          end_date: string | null
+          id: number
+          package_id: number | null
+          start_date: string
+        }
+        Insert: {
+          client_id: number
+          created_at?: string | null
+          created_by_uuid?: string | null
+          end_date?: string | null
+          id?: number
+          package_id?: number | null
+          start_date?: string
+        }
+        Update: {
+          client_id?: number
+          created_at?: string | null
+          created_by_uuid?: string | null
+          end_date?: string | null
+          id?: number
+          package_id?: number | null
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_package_history_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_package_history_created_by_uuid_fkey"
+            columns: ["created_by_uuid"]
+            isOneToOne: false
+            referencedRelation: "admins"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_package_history_package_id_fkey"
+            columns: ["package_id"]
+            isOneToOne: false
+            referencedRelation: "packages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_shares: {
         Row: {
           client_id: number
@@ -172,6 +224,7 @@ export type Database = {
           enrollment_date: string
           expiry_date: string
           id: number
+          notes: string | null
           payment_date: string | null
           payment_mode: string | null
           shipping_location: string | null
@@ -182,6 +235,7 @@ export type Database = {
           enrollment_date?: string
           expiry_date: string
           id?: number
+          notes?: string | null
           payment_date?: string | null
           payment_mode?: string | null
           shipping_location?: string | null
@@ -192,6 +246,7 @@ export type Database = {
           enrollment_date?: string
           expiry_date?: string
           id?: number
+          notes?: string | null
           payment_date?: string | null
           payment_mode?: string | null
           shipping_location?: string | null
@@ -298,33 +353,43 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      bulk_create_orders: {
+        Args: { admin_uuid: string; orders_data: Json }
+        Returns: {
+          error_message: string
+          order_id: number
+          success: boolean
+        }[]
+      }
       create_client: {
-        Args:
-          | {
-              admin_uuid: string
-              client_age?: number
-              client_email?: string
-              client_issue?: string
-              client_lifewave_id?: number
-              client_name: string
-              client_notes?: string
-              client_package_id?: number
-              client_phone?: string
-              client_sponsor?: string
-            }
-          | {
-              admin_uuid: string
-              client_dob?: string
-              client_email?: string
-              client_issue?: string
-              client_lifewave_id?: number
-              client_name: string
-              client_notes?: string
-              client_package_id?: number
-              client_phone?: string
-              client_sponsor?: string
-            }
+        Args: {
+          admin_uuid: string
+          client_dob?: string
+          client_email?: string
+          client_issue?: string
+          client_lifewave_id?: number
+          client_name: string
+          client_notes?: string
+          client_package_id?: number
+          client_phone?: string
+          client_sponsor?: string
+        }
         Returns: Json
+      }
+      create_order: {
+        Args: {
+          admin_uuid: string
+          client_id_param: number
+          collection_date_param?: string
+          enrollment_date_param: string
+          expiry_date_param: string
+          notes_param?: string
+          order_items_param?: Json
+          payment_date_param?: string
+          payment_mode_param?: string
+          shipping_location_param?: string
+        }
+        Returns: number
       }
       create_reminder: {
         Args: {
@@ -337,6 +402,10 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_order: {
+        Args: { admin_uuid: string; order_id_param: number }
+        Returns: boolean
+      }
       delete_reminder: {
         Args: { admin_uuid: string; p_reminder_id: number }
         Returns: Json
@@ -345,12 +414,89 @@ export type Database = {
         Args: { admin_uuid: string; client_id: number }
         Returns: Json
       }
+      get_client_orders: {
+        Args: { admin_uuid: string; client_id_param: number }
+        Returns: {
+          collection_date: string
+          enrollment_date: string
+          expiry_date: string
+          notes: string
+          order_id: number
+          payment_date: string
+          payment_mode: string
+          shipping_location: string
+          total_items: number
+        }[]
+      }
+      get_client_package_history: {
+        Args: { admin_uuid: string; p_client_id: number }
+        Returns: Json
+      }
       get_clients_data: {
         Args: { admin_uuid: string }
         Returns: Json
       }
+      get_clients_with_packages_for_admin: {
+        Args: { admin_uuid: string }
+        Returns: {
+          can_create_order: boolean
+          email: string
+          id: number
+          name: string
+          package_id: number
+          package_name: string
+          package_points: number
+          phone: string
+        }[]
+      }
       get_dashboard_data: {
         Args: { admin_uuid: string }
+        Returns: Json
+      }
+      get_order_details: {
+        Args: { admin_uuid: string; order_id_param: number }
+        Returns: {
+          client_id: number
+          client_name: string
+          collection_date: string
+          enrollment_date: string
+          expiry_date: string
+          is_shared: boolean
+          item_id: number
+          order_id: number
+          order_notes: string
+          payment_date: string
+          payment_mode: string
+          point_cost: number
+          product_id: number
+          product_name: string
+          quantity: number
+          shipping_location: string
+        }[]
+      }
+      get_orders: {
+        Args: { admin_uuid: string }
+        Returns: {
+          client_id: number
+          client_name: string
+          collection_date: string
+          enrollment_date: string
+          expiry_date: string
+          is_shared: boolean
+          notes: string
+          order_id: number
+          payment_date: string
+          payment_mode: string
+          shipping_location: string
+        }[]
+      }
+      get_orders_for_admin: {
+        Args: {
+          admin_uuid: string
+          search_term?: string
+          sort_by?: string
+          sort_order?: string
+        }
         Returns: Json
       }
       get_packages: {
@@ -360,6 +506,24 @@ export type Database = {
       get_pending_reminder_count: {
         Args: { admin_uuid: string }
         Returns: number
+      }
+      get_products: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          duration: string
+          id: number
+          name: string
+          point_cost: number
+        }[]
+      }
+      get_products_for_admin: {
+        Args: { admin_uuid: string }
+        Returns: {
+          duration: string
+          id: number
+          name: string
+          point_cost: number
+        }[]
       }
       get_reminder_details: {
         Args: { admin_uuid: string; p_reminder_id: number }
@@ -381,7 +545,6 @@ export type Database = {
           client_id: number
           client_name: string
           client_phone: string
-          created_at: string
           id: number
           message: string
           order_id: number
@@ -395,34 +558,35 @@ export type Database = {
         Returns: Json
       }
       update_client: {
-        Args:
-          | {
-              admin_uuid: string
-              client_age?: number
-              client_email?: string
-              client_id: number
-              client_issue?: string
-              client_lifewave_id?: number
-              client_name?: string
-              client_notes?: string
-              client_package_id?: number
-              client_phone?: string
-              client_sponsor?: string
-            }
-          | {
-              admin_uuid: string
-              client_dob?: string
-              client_email?: string
-              client_id: number
-              client_issue?: string
-              client_lifewave_id?: number
-              client_name?: string
-              client_notes?: string
-              client_package_id?: number
-              client_phone?: string
-              client_sponsor?: string
-            }
+        Args: {
+          admin_uuid: string
+          client_dob?: string
+          client_email?: string
+          client_id: number
+          client_issue?: string
+          client_lifewave_id?: number
+          client_name?: string
+          client_notes?: string
+          client_package_id?: number
+          client_phone?: string
+          client_sponsor?: string
+        }
         Returns: Json
+      }
+      update_order: {
+        Args: {
+          admin_uuid: string
+          collection_date_param?: string
+          enrollment_date_param: string
+          expiry_date_param: string
+          notes_param?: string
+          order_id_param: number
+          order_items_param?: Json
+          payment_date_param?: string
+          payment_mode_param?: string
+          shipping_location_param?: string
+        }
+        Returns: boolean
       }
       update_reminder: {
         Args: {
