@@ -11,7 +11,7 @@ import RemindersPage from '@/components/reminders/RemindersPage';
 import OrdersPage from '@/components/orders/OrdersPage';
 
 // Placeholder components for other views
-const CalendarPage = () => <div className="p-4">Calendar Page Content</div>;
+const CalendarPage = () => <div className="p-4">Calendar Coming Soon</div>;
 type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail'| 'order';
 
 export default function App() {

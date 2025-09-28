@@ -40,6 +40,7 @@ import {
 } from 'lucide-react';
 import CreateClientDialog from './CreateClientDialog';
 import ClientDetailsDialog from './ClientDetailsDialog';
+import CreateOrderDialog from '../orders/CreateOrderDialog';
 import {
   ClientsData, 
   ClientsDataResponse, 
@@ -86,7 +87,9 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+  const [isCreateOrderDialogOpen, setIsCreateOrderDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const [createOrderSeed, setCreateOrderSeed] = useState<{ clientId: number; clientName: string } | null>(null);
 
   const { 
     data, 
@@ -166,6 +169,17 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     setIsDetailsDialogOpen(false);
     setSelectedClient(null);
     refetch();
+  };
+
+  const handleCreateOrderSuccess = () => {
+    setIsCreateOrderDialogOpen(false);
+    setCreateOrderSeed(null);
+    refetch();
+  };
+
+  const handleCreateOrder = (clientId: number, clientName: string) => {
+    setCreateOrderSeed({ clientId, clientName });
+    setIsCreateOrderDialogOpen(true);
   };
 
   if (isLoading) {
@@ -317,6 +331,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
                   onClick={() => handleClientClick(client)}
                   showManaged={true}
                   onCreateReminder={onCreateReminder}
+                  onCreateOrder={handleCreateOrder}
                 />
               ))}
             </div>
@@ -348,6 +363,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
                   onClick={() => handleClientClick(client)}
                   showManaged={false}
                   onCreateReminder={onCreateReminder}
+                  onCreateOrder={handleCreateOrder}
                 />
               ))}
             </div>
@@ -371,12 +387,21 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
         userId={user.id}
         client={selectedClient}
       />
+
+      {/* Create Order Dialog */}
+      <CreateOrderDialog
+        open={isCreateOrderDialogOpen}
+        onOpenChange={setIsCreateOrderDialogOpen}
+        onSuccess={handleCreateOrderSuccess}
+        userId={user.id}
+        createSeed={createOrderSeed}
+      />
     </div>
   );
 }
 
 // Client Card Component
-function ClientCard({ client, onClick, showManaged, onCreateReminder }: ClientCardProps) {
+function ClientCard({ client, onClick, showManaged, onCreateReminder, onCreateOrder }: ClientCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -409,8 +434,7 @@ function ClientCard({ client, onClick, showManaged, onCreateReminder }: ClientCa
 
   const handleCreateOrder = (e: React.MouseEvent) => {
     e.stopPropagation();
-    // TODO: Implement create order functionality
-    console.log('Create order for client:', client.id);
+    onCreateOrder(client.id, client.name);
   };
 
   const age = calculateAge(client.dob);

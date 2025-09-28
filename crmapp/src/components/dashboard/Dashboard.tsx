@@ -18,6 +18,7 @@ import {
 import StatsCard from './StatsCard';
 import ClientCard from './ClientCard';
 import { DonutChartCard } from './DonutChartCard';
+import ClientDetailsDialog from './ClientDetailsDialog';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { 
   Search,
@@ -75,6 +76,8 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
   const [activeTab, setActiveTab] = useState('packages');
   const [showSharedClients, setShowSharedClients] = useState(false);
   const [remindersDropdownOpen, setRemindersDropdownOpen] = useState(false);
+  const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   
   const { 
     data, 
@@ -104,6 +107,11 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
   const totalClients = React.useMemo(() => {
     return (data?.stats.managedClients ?? 0) + (data?.stats.sharedClients ?? 0);
   }, [data]);
+
+  const handleClientCardClick = (clientId: number) => {
+    setSelectedClientId(clientId);
+    setIsClientDetailsOpen(true);
+  };
 
   // Helper function to get reminder counts by type
   const getReminderCounts = React.useMemo(() => {
@@ -350,12 +358,20 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
               <ClientCard
                 key={client.id}
                 client={client}
-                onClick={onClientClick}
+                onClick={handleClientCardClick}
               />
             ))
           )}
         </div>
       </div>
+
+      {/* Client Details Dialog */}
+      <ClientDetailsDialog
+        open={isClientDetailsOpen}
+        onOpenChange={setIsClientDetailsOpen}
+        clientId={selectedClientId}
+        userId={user.id}
+      />
     </div>
   );
 }

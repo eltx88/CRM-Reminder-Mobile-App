@@ -165,10 +165,11 @@ export interface Client {
   }
   
   export interface ClientCardProps {
-    client: Client;
-    onClick: () => void;
-    showManaged: boolean;
-    onCreateReminder: (clientId: number, clientName: string) => void;
+    client: Client;
+    onClick: () => void;
+    showManaged: boolean;
+    onCreateReminder: (clientId: number, clientName: string) => void;
+    onCreateOrder: (clientId: number, clientName: string) => void;
   }
   
   // Chart Data Interface

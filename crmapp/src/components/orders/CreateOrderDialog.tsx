@@ -37,13 +37,15 @@ interface CreateOrderDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   userId: string;
+  createSeed?: { clientId: number; clientName: string } | null;
 }
 
 export default function CreateOrderDialog({
   open,
   onOpenChange,
   onSuccess,
-  userId
+  userId,
+  createSeed
 }: CreateOrderDialogProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -90,6 +92,16 @@ export default function CreateOrderDialog({
       resetForm();
     }
   }, [open]);
+
+  // Pre-select client when createSeed is provided
+  useEffect(() => {
+    if (createSeed && clients.length > 0) {
+      const client = clients.find(c => c.id === createSeed.clientId);
+      if (client) {
+        handleClientSelect(client);
+      }
+    }
+  }, [createSeed, clients]);
 
   const loadClients = async () => {
     try {
