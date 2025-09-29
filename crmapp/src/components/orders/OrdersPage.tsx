@@ -158,24 +158,30 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   return (
     <div className="space-y-6 px-3 mt-3 md:px-4">
       {/* Header */}
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <Package className="h-8 w-8" />
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <Package className="h-6 w-6 sm:h-8 sm:w-8" />
           Orders
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center gap-2"
+            className="flex items-center justify-center gap-2 w-full sm:w-auto"
+            size="sm"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2">
+          <Button 
+            onClick={() => setCreateDialogOpen(true)} 
+            className="flex items-center justify-center gap-2 w-full sm:w-auto"
+            size="sm"
+          >
             <Plus className="h-4 w-4" />
-            Create Order
+            <span className="hidden sm:inline">Create Order</span>
+            <span className="sm:hidden">Create</span>
           </Button>
         </div>
       </div>

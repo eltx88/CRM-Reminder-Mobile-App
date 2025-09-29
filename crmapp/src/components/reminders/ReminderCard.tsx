@@ -7,23 +7,16 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, Check, X, Calendar, User, Clock } from "lucide-react";
 import { ReminderCardProps } from "../interface";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
-
+import WhatsappButton from "../WhatsappButton";
 export default function ReminderCard({
     reminder,
     onEdit,
     onDelete,
     onStatusChange,
-    onWhatsAppClick,
   }: ReminderCardProps) {
     const isExpired = new Date(reminder.trigger_date) < new Date();
     const isExpiry = reminder.reminder_type === "EXPIRY";
     const tagColor = isExpiry ? "bg-red-100 text-red-800" : "bg-yellow-100 text-yellow-800";
-    const borderColor = isExpiry ? "border-l-red-500" : "border-l-yellow-500";
-  
-    const handleWhatsAppClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (reminder.client_phone) onWhatsAppClick(reminder.client_phone);
-    };
   
     const handleComplete = (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -125,16 +118,9 @@ export default function ReminderCard({
                   </Button>
                 </>
               )}
-              {reminder.client_phone && (
-                <Button size="sm" color="white" variant="secondary" className="transition-colors hover:bg-green-100 hover:text-white" onClick={handleWhatsAppClick}>
-                <img
-                  src="whatsapp.svg"
-                  alt="WhatsApp"
-                  className="h-10 w-20 hover:cursor-pointer"
-                  onClick={(e) => e.stopPropagation()}
-                />
-              </Button>
-              )}
+            </div>
+            <div className="absolute bottom-8 right-2 p-2">
+                {reminder.client_phone && (<WhatsappButton phone={reminder.client_phone} />)}
             </div>
           </CardContent>
         </Card>

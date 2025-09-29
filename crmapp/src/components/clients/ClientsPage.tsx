@@ -36,7 +36,8 @@ import {
   MessageCircle,
   MoreVertical,
   Bell,
-  ShoppingCart
+  ShoppingCart,
+  Users2
 } from 'lucide-react';
 import CreateClientDialog from './CreateClientDialog';
 import ClientDetailsDialog from './ClientDetailsDialog';
@@ -211,7 +212,11 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-foreground">Clients</h1>
+
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+          <Users className="h-6 w-6 sm:h-8 sm:w-8" />
+          Clients
+        </h1>
         </div>
         <Button variant="outline" onClick={() => refetch()}>
           <RefreshCw className="h-4 w-4 mr-2" />

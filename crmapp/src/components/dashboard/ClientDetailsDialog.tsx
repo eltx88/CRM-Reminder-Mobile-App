@@ -19,8 +19,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { format } from 'date-fns';
-
+import WhatsappButton from '../WhatsappButton';
 interface ClientDetailsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -88,20 +87,6 @@ export default function ClientDetailsDialog({
       setClientDetails(null);
     }
   }, [open]);
-
-  const formatPhoneForWhatsApp = (phone: string) => {
-    // Remove all non-digit characters
-    const digitsOnly = phone.replace(/\D/g, '');
-    return digitsOnly;
-  };
-
-  const handleWhatsAppClick = () => {
-    if (clientDetails?.client_phone) {
-      const formattedPhone = formatPhoneForWhatsApp(clientDetails.client_phone);
-      const whatsappUrl = `https://wa.me/${formattedPhone}`;
-      window.open(whatsappUrl, '_blank');
-    }
-  };
 
   if (isLoading) {
     return (
@@ -195,18 +180,7 @@ export default function ClientDetailsDialog({
                   <div className="flex items-center gap-2">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">{clientDetails.client_phone}</span>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleWhatsAppClick}
-                      className="ml-2"
-                    >
-                      <img
-                        src="whatsapp.svg"
-                        alt="WhatsApp"
-                        className="h-5 w-20 hover:cursor-pointer"
-                      />
-                    </Button>
+                    <WhatsappButton phone={clientDetails.client_phone} />
                   </div>
                 )}
                 {clientDetails.client_email && (
@@ -248,35 +222,12 @@ export default function ClientDetailsDialog({
                 </span>
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">Package ID</span>
-                </div>
-                <span className="text-sm font-mono">
-                  #{clientDetails.package_id}
-                </span>
-              </div>
+             
             </CardContent>
           </Card>
 
           {/* Additional Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Additional Information
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-sm text-muted-foreground">
-                <p>This client is managed by you and has access to the {clientDetails.package_name} package.</p>
-                <p className="mt-2">
-                  The client can create orders up to {clientDetails.package_points} points based on their package allowance.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+         
         </div>
 
         {/* Actions */}

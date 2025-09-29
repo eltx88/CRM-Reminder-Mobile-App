@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Loader2, Plus, Minus, Package, Coins, Check, ChevronDown, ChevronRight, Trash2 } from 'lucide-react';
+import { AlertCircle, Loader2, Plus, Minus, Package, Coins, Check, ChevronDown, ChevronRight, Trash2, X } from 'lucide-react';
 import { Database } from '@/supabase/types';
 import * as z from 'zod';
 import { OrderItem } from '../interface';
@@ -399,7 +399,7 @@ export default function CreateOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -492,8 +492,8 @@ export default function CreateOrderDialog({
 
         {/* Order Items */}
         <div>
-            <div className="flex items-center justify-between mb-2">
-            <Label>Order Items *</Label>
+            <div className="flex items-center  justify-between mb-2">
+            <Label>Order Items</Label>
             <div className="flex items-center gap-2">
                 <Button 
                     type="button" 
@@ -504,7 +504,7 @@ export default function CreateOrderDialog({
                     title={!canAddMoreItems() ? "Cannot add more items - points allowance reached" : "Add another item"}
                 >
                     <Plus className="h-4 w-4 mr-1" />
-                    Add Item
+                    Add
                 </Button>
                 <AlertDialog>
                     <AlertDialogTrigger asChild>
@@ -541,16 +541,15 @@ export default function CreateOrderDialog({
             </div>
             
             <div className="space-y-2">
-            {/* FIXED: Map over formData.order_items */}
             {formData.order_items.map((item, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 border rounded">
+                <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 border rounded">
                 <div className="flex-1">
                     <Select
                     value={item.product_id.toString()}
                     onValueChange={(value) => updateOrderItem(index, 'product_id', parseInt(value) || 0)}
                     >
                     <SelectTrigger>
-                        <SelectValue placeholder="Select product..." />
+                        <SelectValue className="text-l" placeholder="Select product..." />
                     </SelectTrigger>
                     <SelectContent>
                         {getAvailableProducts(index).map((product) => (
@@ -576,25 +575,47 @@ export default function CreateOrderDialog({
                     </Select>
                 </div>
                 
-                <div className="flex items-center gap-1">
-                    <Label className="text-xs">Qty:</Label>
-                    <Input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => updateOrderItem(index, 'quantity', parseInt(e.target.value) || 1)}
-                    className="w-16"
-                    />
+                <div className="flex items-center gap-1 sm:min-w-[120px]">
+                    <Label className="text-s">Quantity:</Label>
+                    <div className="flex items-center border rounded-md">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateOrderItem(index, 'quantity', Math.max(1, item.quantity - 1))}
+                            className="h-8 w-8 p-0 hover:bg-gray-100"
+                        >
+                            <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => updateOrderItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                            className="w-12 h-8 text-center border-0 focus:ring-0"
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateOrderItem(index, 'quantity', item.quantity + 1)}
+                            className="h-8 w-8 p-0 hover:bg-gray-100"
+                        >
+                            <Plus className="h-3 w-3" />
+                        </Button>           
+                    </div>
+                    
+                    {(() => {
+                        const product = products.find(p => p.id === item.product_id);
+                        return product ? (
+                        <div className="text-sm text-gray-600 pl-2 min-w-[80px]">
+                            {product.point_cost * item.quantity} pts
+                        </div>
+                        ) : null;
+                    })()}
                 </div>
 
-                {(() => {
-                    const product = products.find(p => p.id === item.product_id);
-                    return product ? (
-                    <div className="text-sm text-gray-600 min-w-[80px]">
-                        {product.point_cost * item.quantity} pts
-                    </div>
-                    ) : null;
-                })()}
+                
 
                 {/* FIXED: Check formData.order_items.length */}
                 {formData.order_items.length > 1 && (
@@ -603,8 +624,9 @@ export default function CreateOrderDialog({
                     onClick={() => removeOrderItem(index)}
                     variant="ghost"
                     size="sm"
+                    className="self-start sm:self-center absolute right-7"
                     >
-                    <Minus className="h-4 w-4" />
+                    <X className="h-4 w-4" />
                     </Button>
                 )}
                 </div>
@@ -632,7 +654,7 @@ export default function CreateOrderDialog({
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
             <Label htmlFor="enrollment_date">Enrollment Date *</Label>
             <Input
@@ -819,16 +841,17 @@ export default function CreateOrderDialog({
         )}
 
         {/* Actions */}
-        <div className="flex justify-end gap-2 pt-4">
+        <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-4">
             <Button
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
             disabled={loading}
+            className="w-full sm:w-auto"
             >
             Cancel
             </Button>
-            <Button type="submit" disabled={loading || !selectedClient}>
+            <Button type="submit" disabled={loading || !selectedClient} className="w-full sm:w-auto">
             {loading ? (
                 <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />

@@ -203,9 +203,8 @@ export interface Client {
   export interface ReminderCardProps {
     reminder: Reminder;
     onEdit: (reminder: Reminder) => void;
-    onDelete: (reminderId: number) => void;
     onStatusChange: (reminderId: number, status: 'PENDING' | 'COMPLETED' | 'DISMISSED') => void;
-    onWhatsAppClick: (phone: string) => void;
+    onDelete: (reminderId: number) => void;
   }
   
   export type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';

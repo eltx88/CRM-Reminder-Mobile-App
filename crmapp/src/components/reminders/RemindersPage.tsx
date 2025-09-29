@@ -150,9 +150,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
   };
 
   // Handle reminder deletion
-  const handleDelete = async (reminderId: number) => {
-    if (!confirm('Are you sure you want to delete this reminder?')) return;
-    
+  const handleDelete = async (reminderId: number) => {    
     try {
       const { data, error } = await supabase.rpc('delete_reminder', {
         admin_uuid: user.id,
@@ -177,15 +175,6 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
   const handleEdit = (reminder: Reminder) => {
     setSelectedReminder(reminder);
     setEditDialogOpen(true);
-  };
-
-  // Handle WhatsApp click
-  const handleWhatsAppClick = (phone: string | null) => {
-    if (phone) {
-      const formattedPhone = formatPhoneForWhatsApp(phone);
-      const whatsappUrl = `https://wa.me/${formattedPhone}`;
-      window.open(whatsappUrl, '_blank');
-    }
   };
 
   // Toggle sort order
@@ -295,7 +284,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
 
             {/* Row 3: Left switch, right actions */}
             <div className="md:col-span-12">
-              <div className="flex flex-wrap items-center gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center gap-2">
                   <Switch
                     id="show-active"
@@ -307,18 +296,25 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
                   </label>
                 </div>
 
-                <div className="ml-auto flex items-center gap-2">
+                <div className="flex flex-col sm:flex-row sm:ml-auto items-stretch sm:items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleRefresh}
                     disabled={loading}
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">Refresh</span>
                     Refresh
                   </Button>
-                  <Button onClick={() => handleCreateDialogChange(true)}>
-                    Add Reminder
+                  <Button 
+                    onClick={() => handleCreateDialogChange(true)}
+                    size="sm"
+                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
+                  >
+                    <span className="hidden sm:inline">Add Reminder</span>
+                    <span className="sm:hidden">Add</span>
                   </Button>
                 </div>
               </div>
@@ -355,10 +351,9 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
               key={reminder.id}
               reminder={reminder}
               onEdit={handleEdit}
-              onDelete={handleDelete}
               onStatusChange={handleStatusChange}
-              onWhatsAppClick={handleWhatsAppClick}
-            />
+              onDelete={handleDelete}
+                />
           ))}
         </div>
       )}
