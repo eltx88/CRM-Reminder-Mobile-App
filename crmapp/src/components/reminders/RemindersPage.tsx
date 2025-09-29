@@ -1,11 +1,11 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from '@/components/ui/select';
-import { Search, Filter, Calendar, SortAsc, SortDesc } from 'lucide-react';
+import { Search, Filter, Calendar, SortAsc, SortDesc, RefreshCw } from 'lucide-react';
 import ReminderCard from './ReminderCard';
 import CreateReminderDialog from './CreateReminderDialog';
 import EditReminderDialog from './EditReminderDialog'; 
@@ -21,6 +21,7 @@ interface Reminder {
   trigger_date: string;
   message: string;
   status: 'PENDING' | 'COMPLETED' | 'DISMISSED';
+  created_at?: string;
 }
 
 type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';
@@ -52,7 +53,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
 
     // Filter and search states
     const [searchTerm, setSearchTerm] = useState('');
-    const [reminderTypeFilter, setReminderTypeFilter] = useState<ReminderTypeFilter>('FOLLOW_UP');
+    const [reminderTypeFilter, setReminderTypeFilter] = useState<ReminderTypeFilter>('ALL');
     const [sortBy, setSortBy] = useState<ReminderSortBy>('trigger_date');
     const [sortOrder, setSortOrder] = useState<SortOrder>('ASC');
     
@@ -68,9 +69,10 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     };
     const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
+    const hasFetchedRef = useRef(false);
 
   // Fetch reminders function
-  const fetchReminders = async () => {
+  const fetchReminders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -109,21 +111,20 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     } finally {
       setLoading(false);
     }
-  };
+  }, [user.id]);
 
-  // Initial load and when filters change
+  // Initial load (guard for strict mode double call)
   useEffect(() => {
+    if (hasFetchedRef.current) {
+      return;
+    }
+    hasFetchedRef.current = true;
     fetchReminders();
-  }, [user.id, reminderTypeFilter, sortBy, sortOrder]);
+  }, [fetchReminders]);
 
-  // Handle search with debounce
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      fetchReminders();
-    }, 300);
-    
-    return () => clearTimeout(timer);
-  }, [searchTerm]);
+  const handleRefresh = useCallback(() => {
+    fetchReminders();
+  }, [fetchReminders]);
 
   // Handle reminder status change
   const handleStatusChange = async (reminderId: number, status: 'PENDING' | 'COMPLETED' | 'DISMISSED') => {
@@ -193,9 +194,52 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
   };
 
   //Filter for active reminders
-  const filteredReminders = showActiveOnly
-  ? reminders.filter(r => r.status !== 'DISMISSED' && r.status !== 'COMPLETED')
-  : reminders;
+  const filteredAndSortedReminders = useMemo(() => {
+    let result = [...reminders];
+
+    if (searchTerm) {
+      const lowerSearch = searchTerm.toLowerCase();
+      result = result.filter(r =>
+        r.client_name.toLowerCase().includes(lowerSearch) ||
+        r.message.toLowerCase().includes(lowerSearch)
+      );
+    }
+
+    if (reminderTypeFilter !== 'ALL') {
+      result = result.filter(r => r.reminder_type === reminderTypeFilter);
+    }
+
+    if (showActiveOnly) {
+      result = result.filter(r => r.status !== 'DISMISSED' && r.status !== 'COMPLETED');
+    }
+
+    result.sort((a, b) => {
+      let valA: number | string = '';
+      let valB: number | string = '';
+
+      switch (sortBy) {
+        case 'client_name':
+          valA = a.client_name.toLowerCase();
+          valB = b.client_name.toLowerCase();
+          break;
+        case 'created_at':
+          valA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          valB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          break;
+        case 'trigger_date':
+        default:
+          valA = new Date(a.trigger_date).getTime();
+          valB = new Date(b.trigger_date).getTime();
+          break;
+      }
+
+      if (valA < valB) return sortOrder === 'ASC' ? -1 : 1;
+      if (valA > valB) return sortOrder === 'ASC' ? 1 : -1;
+      return 0;
+    });
+
+    return result;
+  }, [reminders, searchTerm, reminderTypeFilter, showActiveOnly, sortBy, sortOrder]);
 
 
 
@@ -249,29 +293,35 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
             </div>
             </div>
 
-            {/* Row 3: Left switch, right Add Reminder */}
+            {/* Row 3: Left switch, right actions */}
             <div className="md:col-span-12">
-            <div className="flex flex-wrap items-center gap-3">
-                {/* Left-aligned show active switch (shadcn) */}
+              <div className="flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-2">
-                {/* Ensure: import { Switch } from '@/components/ui/switch' */}
-                <Switch
+                  <Switch
                     id="show-active"
                     checked={showActiveOnly}
                     onCheckedChange={setShowActiveOnly}
-                />
-                <label htmlFor="show-active" className="text-sm">
+                  />
+                  <label htmlFor="show-active" className="text-sm">
                     Show active
-                </label>
+                  </label>
                 </div>
 
-                {/* Spacer and right-aligned Add button */}
-                <div className="ml-auto">
-                <Button onClick={() => handleCreateDialogChange(true)}>
+                <div className="ml-auto flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefresh}
+                    disabled={loading}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+                    Refresh
+                  </Button>
+                  <Button onClick={() => handleCreateDialogChange(true)}>
                     Add Reminder
-                </Button>
+                  </Button>
                 </div>
-            </div>
+              </div>
             </div>
         </div>
     </div>
@@ -288,7 +338,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
         <div className="flex justify-center items-center py-12">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
         </div>
-      ) : filteredReminders.length === 0 ? (
+      ) : filteredAndSortedReminders.length === 0 ? (
         <div className="text-center py-12">
           <Calendar className="mx-auto h-12 w-12 text-gray-400" />
           <h3 className="mt-2 text-sm font-medium text-gray-900">No reminders found</h3>
@@ -300,7 +350,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
         </div>
       ) : (
         <div className="grid gap-4 max-w-full sm:max-w-sm">
-          {filteredReminders.map((reminder) => (
+          {filteredAndSortedReminders.map((reminder) => (
             <ReminderCard
               key={reminder.id}
               reminder={reminder}

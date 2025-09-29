@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Plus, Calendar, SortAsc, SortDesc, Package } from 'lucide-react';
+import { Search, Plus, Calendar, SortAsc, SortDesc, Package, RefreshCw } from 'lucide-react';
 import OrderCard from '@/components/orders/OrderCard';
 import CreateOrderDialog from '@/components/orders/CreateOrderDialog';
 import EditOrderDialog from '@/components/orders/EditOrderDialog';
@@ -26,6 +26,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const hasFetchedRef = useRef(false);
   
   // Filter and search states
   const [searchTerm, setSearchTerm] = useState('');
@@ -39,7 +40,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // Fetch orders function
-  const fetchOrders = async () => {
+  const fetchOrders = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -64,12 +65,20 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     } finally {
       setLoading(false);
     }
-  };
-
-  // Initial load
-  useEffect(() => {
-    fetchOrders();
   }, [user.id]);
+
+  // Initial load (guarded for strict mode double call)
+  useEffect(() => {
+    if (hasFetchedRef.current) {
+      return;
+    }
+    hasFetchedRef.current = true;
+    fetchOrders();
+  }, [fetchOrders]);
+
+  const handleRefresh = useCallback(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   // Handle order deletion
   const handleDelete = async (orderId: number) => {
@@ -154,10 +163,21 @@ export default function OrdersPage({ user }: OrdersPageProps) {
           <Package className="h-8 w-8" />
           Orders
         </h1>
-        <Button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create Order
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={() => setCreateDialogOpen(true)} className="flex items-center gap-2">
+            <Plus className="h-4 w-4" />
+            Create Order
+          </Button>
+        </div>
       </div>
 
       {/* Filters and Search */}

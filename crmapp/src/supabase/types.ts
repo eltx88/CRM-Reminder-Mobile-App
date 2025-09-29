@@ -376,6 +376,15 @@ export type Database = {
         }
         Returns: Json
       }
+      create_expiry_reminder: {
+        Args: {
+          admin_uuid_param: string
+          client_id_param: number
+          expiry_date_param: string
+          order_id_param: number
+        }
+        Returns: Json
+      }
       create_order: {
         Args: {
           admin_uuid: string
