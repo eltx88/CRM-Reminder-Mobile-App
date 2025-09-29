@@ -63,8 +63,6 @@ export default function EditOrderDialog({
     payment_date: false,
     notes: false,
   });
-  const [orderItems, setOrderItems] = useState<OrderItem[]>([{ product_id: 0, quantity: 1 }]);
-
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
 
@@ -187,7 +185,6 @@ export default function EditOrderDialog({
       quantity: item.quantity
     }));
 
-    setOrderItems(items.length > 0 ? items : [{ product_id: 0, quantity: 1 }]);
     setError(null);
     } catch (err) {
       console.error('Error populating form:', err);
@@ -314,40 +311,23 @@ export default function EditOrderDialog({
     e.preventDefault();
     setError(null);
 
-    // 1. Generate order items string for notes
-    const generateOrderItemsString = () => {
+    const orderItemsText = (() => {
       const validItems = formData.order_items.filter(item => item.product_id !== 0);
-      if (validItems.length === 0) return '';
-      
-      const itemsString = validItems.map(item => {
-        const product = products.find(p => p.id === item.product_id);
-        return product ? `${product.name} x${item.quantity}` : `Unknown Product x${item.quantity}`;
-      }).join(', ');
-      
-      return `Order Items: [${itemsString}]`;
-    };
+      if (validItems.length === 0) return null;
 
-    // 2. Prepare notes with order items
-    const orderItemsString = generateOrderItemsString();
-    
-    // Remove existing "Order Items:" section if it exists (handle both \n\n and \n patterns)
-    const cleanNotes = formData.notes 
-      ? formData.notes
-          .replace(/\n\nOrder Items: \[[\s\S]*?\]/g, '')  // Remove with double line break
-          .replace(/\nOrder Items: \[[\s\S]*?\]/g, '')   // Remove with single line break
-          .replace(/Order Items: \[[\s\S]*?\]/g, '')     // Remove at start of string
-          .trim()
-      : '';
-    
-    // Append new order items
-    const finalNotes = cleanNotes 
-      ? `${cleanNotes}\n\n${orderItemsString}`
-      : orderItemsString;
+      const summary = validItems
+        .map(item => {
+          const product = products.find(p => p.id === item.product_id);
+          return product ? `${product.name} x${item.quantity}` : `Unknown Product x${item.quantity}`;
+        })
+        .join(', ');
+
+      return `Order Items: ${summary}`;
+    })();
 
     // 3. Validate form data with Zod
     const validationResult = orderSchema.safeParse({
-      ...formData,
-      notes: finalNotes
+      ...formData
     });
 
     if (!validationResult.success) {
@@ -372,7 +352,8 @@ export default function EditOrderDialog({
         payment_date_param: validatedData.payment_date,
         shipping_location_param: validatedData.shipping_location,
         notes_param: validatedData.notes,
-        order_items_param: validatedData.order_items
+        order_items_param: validatedData.order_items,
+        order_items_text_param: orderItemsText ?? undefined
       });
 
       if (rpcError) throw rpcError;

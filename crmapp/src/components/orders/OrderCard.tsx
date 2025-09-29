@@ -14,7 +14,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger
 } from "@/components/ui/alert-dialog";
-import { Trash2, Calendar, User, Clock, MapPin, CreditCard, Notebook } from "lucide-react";
+import { Trash2, Calendar, User, Clock, MapPin, CreditCard, Notebook, ListChecks } from "lucide-react";
 import { Order } from "../interface";
 
 interface OrderCardProps {
@@ -160,13 +160,21 @@ export default function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
           </div>
         )}
 
-        {order.notes && (
+        {(order.order_items || order.notes) && (
           <div className="border-t pt-2 mt-2">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-              <div className="flex items-center gap-1">
-                <Notebook className="h-3 w-3" />
-                <span>{order.notes}</span>
-              </div>
+              {order.order_items && (
+                <div className="flex items-center gap-1">
+                  <ListChecks className="h-3 w-3" />
+                  <span>{order.order_items}</span>
+                </div>
+              )}
+              {order.notes && (
+                <div className="flex items-center gap-1">
+                  <Notebook className="h-3 w-3" />
+                  <span>{order.notes}</span>
+                </div>
+              )}
             </div>
           </div>
         )}

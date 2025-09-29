@@ -57,6 +57,7 @@ export interface Client {
     payment_date: string | null;    // ISO date string
     shipping_location: string | null;
     notes: string | null;
+  order_items: string | null;
     is_shared: boolean;
   }
   

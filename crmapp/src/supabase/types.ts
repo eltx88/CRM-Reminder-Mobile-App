@@ -225,6 +225,7 @@ export type Database = {
           expiry_date: string
           id: number
           notes: string | null
+          order_items: string | null
           payment_date: string | null
           payment_mode: string | null
           shipping_location: string | null
@@ -236,6 +237,7 @@ export type Database = {
           expiry_date: string
           id?: number
           notes?: string | null
+          order_items?: string | null
           payment_date?: string | null
           payment_mode?: string | null
           shipping_location?: string | null
@@ -247,6 +249,7 @@ export type Database = {
           expiry_date?: string
           id?: number
           notes?: string | null
+          order_items?: string | null
           payment_date?: string | null
           payment_mode?: string | null
           shipping_location?: string | null
@@ -353,14 +356,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      bulk_create_orders: {
-        Args: { admin_uuid: string; orders_data: Json }
-        Returns: {
-          error_message: string
-          order_id: number
-          success: boolean
-        }[]
-      }
       create_client: {
         Args: {
           admin_uuid: string
@@ -394,6 +389,7 @@ export type Database = {
           expiry_date_param: string
           notes_param?: string
           order_items_param?: Json
+          order_items_text_param?: string
           payment_date_param?: string
           payment_mode_param?: string
           shipping_location_param?: string
@@ -431,6 +427,7 @@ export type Database = {
           expiry_date: string
           notes: string
           order_id: number
+          order_items: string
           payment_date: string
           payment_mode: string
           shipping_location: string
@@ -485,6 +482,7 @@ export type Database = {
           is_shared: boolean
           item_id: number
           order_id: number
+          order_items: string
           order_notes: string
           payment_date: string
           payment_mode: string
@@ -506,6 +504,7 @@ export type Database = {
           is_shared: boolean
           notes: string
           order_id: number
+          order_items: string
           payment_date: string
           payment_mode: string
           shipping_location: string
@@ -603,6 +602,7 @@ export type Database = {
           notes_param?: string
           order_id_param: number
           order_items_param?: Json
+          order_items_text_param?: string
           payment_date_param?: string
           payment_mode_param?: string
           shipping_location_param?: string
