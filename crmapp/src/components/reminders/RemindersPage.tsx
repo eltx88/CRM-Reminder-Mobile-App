@@ -27,6 +27,21 @@ interface Reminder {
 type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';
 type ReminderSortBy = 'trigger_date' | 'created_at' | 'client_name';
 type SortOrder = 'ASC' | 'DESC';
+type ReminderDateFilter = 'TODAY' | 'ALL';
+
+const isToday = (dateString: string): boolean => {
+  const date = new Date(dateString);
+  if (Number.isNaN(date.getTime())) {
+    return false;
+  }
+
+  const today = new Date();
+  return (
+    date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+  );
+};
 
 interface RemindersPageProps {
   user: User;
@@ -56,6 +71,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     const [reminderTypeFilter, setReminderTypeFilter] = useState<ReminderTypeFilter>('ALL');
     const [sortBy, setSortBy] = useState<ReminderSortBy>('trigger_date');
     const [sortOrder, setSortOrder] = useState<SortOrder>('ASC');
+    const [dateFilter, setDateFilter] = useState<ReminderDateFilter>('TODAY');
     
     // Dialog states
     const [internalCreateDialogOpen, setInternalCreateDialogOpen] = useState(false);
@@ -111,7 +127,16 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     } finally {
       setLoading(false);
     }
-  }, [user.id]);
+  }, [user.id, searchTerm, reminderTypeFilter, sortBy, sortOrder]);
+const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+    if (value.trim().length > 0) {
+      setDateFilter('ALL');
+    } else {
+      setDateFilter('TODAY');
+    }
+  }, []);
+
 
   // Initial load (guard for strict mode double call)
   useEffect(() => {
@@ -198,6 +223,10 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       result = result.filter(r => r.reminder_type === reminderTypeFilter);
     }
 
+    if (dateFilter === 'TODAY') {
+      result = result.filter(r => isToday(r.trigger_date));
+    }
+
     if (showActiveOnly) {
       result = result.filter(r => r.status !== 'DISMISSED' && r.status !== 'COMPLETED');
     }
@@ -228,7 +257,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     });
 
     return result;
-  }, [reminders, searchTerm, reminderTypeFilter, showActiveOnly, sortBy, sortOrder]);
+  }, [reminders, searchTerm, reminderTypeFilter, dateFilter, showActiveOnly, sortBy, sortOrder]);
 
 
 
@@ -244,7 +273,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
                     <Input
                     placeholder="Search clients or messages..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(event) => handleSearchChange(event.target.value)}
                     className="pl-10 w-full"
                     />
                 </div>
@@ -252,21 +281,35 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
 
             {/* Row 2: Follow Up + Sort order icon (next to each other) */}
             <div className="md:col-span-12">
-            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
+                <div className="flex flex-col gap-2 min-w-[160px]">
                 {/* Follow Up (Reminder Type) */}
-                <div className="min-w-[160px]">
                 <Select
                     value={reminderTypeFilter}
                     onValueChange={(v) => setReminderTypeFilter(v as ReminderTypeFilter)}
                 >
                     <SelectTrigger className="w-full">
                     <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue />
+                    <SelectValue placeholder="Filter by type" />
                     </SelectTrigger>
                     <SelectContent>
                     <SelectItem value="FOLLOW_UP">Follow Up</SelectItem>
                     <SelectItem value="EXPIRY">Expiry</SelectItem>
                     <SelectItem value="ALL">All Types</SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <Select
+                    value={dateFilter}
+                    onValueChange={(v) => setDateFilter(v as ReminderDateFilter)}
+                >
+                    <SelectTrigger className="w-full">
+                    <Calendar className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter by date" />
+                    </SelectTrigger>
+                    <SelectContent>
+                    <SelectItem value="TODAY">Reminders Today</SelectItem>
+                    <SelectItem value="ALL">All Reminders</SelectItem>
                     </SelectContent>
                 </Select>
                 </div>

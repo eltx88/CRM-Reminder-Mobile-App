@@ -1,23 +1,12 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase/client';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Dialog,DialogContent,DialogHeader,DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Edit, AlertCircle, Loader2, User, Phone, Mail } from 'lucide-react';
 
@@ -50,6 +39,12 @@ export default function EditReminderDialog({
 }: EditReminderDialogProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const initialFormRef = useRef({
+    trigger_date: '',
+    message: '',
+    status: 'PENDING' as 'PENDING' | 'COMPLETED' | 'DISMISSED',
+  });
   
   // Form state
   const [formData, setFormData] = useState({
@@ -61,14 +56,37 @@ export default function EditReminderDialog({
   // Initialize form when reminder changes or dialog opens
   useEffect(() => {
     if (open && reminder) {
-      setFormData({
+      const initialForm = {
         trigger_date: reminder.trigger_date,
         message: reminder.message,
         status: reminder.status,
-      });
+      };
+      setFormData(initialForm);
+      initialFormRef.current = initialForm;
+      setHasUnsavedChanges(false);
       setError(null);
+    } else if (!open) {
+      initialFormRef.current = {
+        trigger_date: '',
+        message: '',
+        status: 'PENDING',
+      };
+      setHasUnsavedChanges(false);
     }
   }, [open, reminder]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const initial = initialFormRef.current;
+    const hasChanges =
+      initial.trigger_date !== formData.trigger_date ||
+      initial.message !== formData.message ||
+      initial.status !== formData.status;
+    setHasUnsavedChanges(hasChanges);
+  }, [formData, open]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -101,6 +119,8 @@ export default function EditReminderDialog({
 
       const result = data as { success: boolean; message: string };
       if (result.success) {
+        initialFormRef.current = formData;
+        setHasUnsavedChanges(false);
         onSuccess();
         onOpenChange(false);
       } else {
@@ -305,7 +325,7 @@ export default function EditReminderDialog({
             </Button>
             <Button 
               type="submit" 
-              disabled={loading || !formData.message.trim()}
+              disabled={loading || !formData.message.trim() || !hasUnsavedChanges}
             >
               {loading ? (
                 <>
