@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -29,6 +29,36 @@ const orderSchema = z.object({
 type orderFormData = z.infer<typeof orderSchema>;
 type Client = Database['public']['Functions']['get_clients_with_packages_for_admin']['Returns'][0];
 type Product = Database['public']['Functions']['get_products']['Returns'][0];
+
+const cloneOrderFormData = (form: orderFormData): orderFormData => ({
+  ...form,
+  order_items: form.order_items.map(item => ({ ...item })),
+});
+
+const areOrderFormsEqual = (a: orderFormData, b: orderFormData): boolean => {
+  if (
+    a.enrollment_date !== b.enrollment_date ||
+    a.expiry_date !== b.expiry_date ||
+    a.payment_mode !== b.payment_mode ||
+    a.collection_date !== b.collection_date ||
+    a.payment_date !== b.payment_date ||
+    a.shipping_location !== b.shipping_location ||
+    a.notes !== b.notes ||
+    a.order_items.length !== b.order_items.length
+  ) {
+    return false;
+  }
+
+  for (let i = 0; i < a.order_items.length; i++) {
+    const itemA = a.order_items[i];
+    const itemB = b.order_items[i];
+    if (itemA.product_id !== itemB.product_id || itemA.quantity !== itemB.quantity) {
+      return false;
+    }
+  }
+
+  return true;
+};
 
 interface EditOrderDialogProps {
   open: boolean;
@@ -65,6 +95,8 @@ export default function EditOrderDialog({
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const initialFormRef = useRef<orderFormData | null>(null);
 
   const [formData, setFormData] = useState<orderFormData>({
     enrollment_date: '',
@@ -79,11 +111,18 @@ export default function EditOrderDialog({
 
   // Load data and populate form when dialog opens
   useEffect(() => {
-    if (open) {
-      loadProducts();
+    const loadAndPopulate = async () => {
+      await loadProducts();
       if (order) {
-        populateForm();
+        await populateForm();
       }
+    };
+
+    if (open) {
+      loadAndPopulate();
+    } else {
+      initialFormRef.current = null;
+      setHasUnsavedChanges(false);
     }
   }, [open, order]);
 
@@ -166,7 +205,7 @@ export default function EditOrderDialog({
         }
       }
 
-    setFormData({
+    const nextFormData: orderFormData = {
       enrollment_date: orderDetails.enrollment_date,
       expiry_date: orderDetails.expiry_date || '',
       payment_mode: orderDetails.payment_mode || '',
@@ -178,12 +217,12 @@ export default function EditOrderDialog({
         product_id: item.product_id,
         quantity: item.quantity
       }))
-    });
+    };
 
-    const items = data.map(item => ({
-      product_id: item.product_id,
-      quantity: item.quantity
-    }));
+    const clonedForm = cloneOrderFormData(nextFormData);
+    setFormData(clonedForm);
+    initialFormRef.current = cloneOrderFormData(clonedForm);
+    setHasUnsavedChanges(false);
 
     setError(null);
     } catch (err) {
@@ -207,6 +246,13 @@ export default function EditOrderDialog({
     setIsExpiryDateManuallyEdited(false);
   }, [formData.order_items]);
 
+  useEffect(() => {
+    if (!open || !initialFormRef.current) {
+      return;
+    }
+    setHasUnsavedChanges(!areOrderFormsEqual(initialFormRef.current, formData));
+  }, [formData, open]);
+
   // Toggle individual field expansion
   const toggleField = (fieldName: keyof typeof expandedFields) => {
     setExpandedFields(prev => ({
@@ -219,7 +265,7 @@ export default function EditOrderDialog({
   const addOrderItem = () => {
     setFormData(prev => ({
       ...prev,
-      order_items: [...prev.order_items, { product_id: 0, quantity: 1 }]
+      order_items: [...prev.order_items, { product_id: 0, quantity: 1 }],
     }));
   };
 
@@ -359,6 +405,8 @@ export default function EditOrderDialog({
       if (rpcError) throw rpcError;
 
       if (data === true) {
+        initialFormRef.current = cloneOrderFormData(formData);
+        setHasUnsavedChanges(false);
         onSuccess();
         onOpenChange(false);
       } else {
@@ -379,10 +427,13 @@ export default function EditOrderDialog({
     if (!isExpiryDateManuallyEdited) {
       const calculatedExpiryDate = calculateExpiryDate();
       if (calculatedExpiryDate && calculatedExpiryDate !== formData.expiry_date) {
-        setFormData(prev => ({
-          ...prev,
-          expiry_date: calculatedExpiryDate
-        }));
+        setFormData(prev => {
+          const updated = { ...prev, expiry_date: calculatedExpiryDate };
+          if (initialFormRef.current && areOrderFormsEqual(initialFormRef.current, prev)) {
+            initialFormRef.current = cloneOrderFormData(updated);
+          }
+          return updated;
+        });
       }
     }
   }, [formData.order_items, formData.enrollment_date, products, isExpiryDateManuallyEdited]);
@@ -789,7 +840,7 @@ export default function EditOrderDialog({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading || !selectedClient} className="w-full sm:w-auto">
+            <Button type="submit" disabled={loading || !selectedClient || !hasUnsavedChanges} className="w-full sm:w-auto">
               {loading ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />

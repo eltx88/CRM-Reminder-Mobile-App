@@ -19,11 +19,11 @@ import { Order } from "../interface";
 
 interface OrderCardProps {
   order: Order;
-  onEdit: (order: Order) => void;
+  onSelect: (order: Order) => void;
   onDelete: (orderId: number) => void;
 }
 
-export default function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
+export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps) {
   const borderColor = order.is_expired ? "border-l-red-500" : order.can_edit ? "border-l-blue-500" : "border-l-gray-400";
 
   const handleDeleteClick = (e: React.MouseEvent) => {
@@ -34,16 +34,14 @@ export default function OrderCard({ order, onEdit, onDelete }: OrderCardProps) {
     <Card
       role="button"
       tabIndex={0}
-      onClick={() => order.can_edit && onEdit(order)}
+      onClick={() => onSelect(order)}
       onKeyDown={(e) => {
-        if ((e.key === "Enter" || e.key === " ") && order.can_edit) {
+        if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          onEdit(order);
+          onSelect(order);
         }
       }}
-      className={`hover:shadow-md transition-shadow border-l-4 ${borderColor} relative ${
-        order.can_edit ? 'cursor-pointer' : 'cursor-default'
-      }`}
+      className={`hover:shadow-md transition-shadow border-l-4 ${borderColor} relative cursor-pointer`}
     >
       {order.can_edit && (
         <AlertDialog>

@@ -11,6 +11,7 @@ import { Search, Plus, Calendar, SortAsc, SortDesc, Package, RefreshCw } from 'l
 import OrderCard from '@/components/orders/OrderCard';
 import CreateOrderDialog from '@/components/orders/CreateOrderDialog';
 import EditOrderDialog from '@/components/orders/EditOrderDialog';
+import OrderDetailsDialog from '@/components/orders/OrderDetailsDialog';
 import { Switch } from '../ui/switch';
 import { Order, FetchedOrder } from '../interface';
 
@@ -38,6 +39,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
   // Fetch orders function
   const fetchOrders = useCallback(async () => {
@@ -104,7 +106,13 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   // Handle edit order
   const handleEdit = (order: Order) => {
     setSelectedOrder(order);
+    setDetailsDialogOpen(false);
     setEditDialogOpen(true);
+  };
+
+  const handleSelectOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setDetailsDialogOpen(true);
   };
 
   // Toggle sort order
@@ -282,7 +290,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
                 <OrderCard
                   key={order.id}
                   order={order}
-                  onEdit={handleEdit}
+                  onSelect={handleSelectOrder}
                   onDelete={handleDelete}
                 />
               ))}
@@ -309,7 +317,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
                 <OrderCard
                   key={order.id}
                   order={order}
-                  onEdit={handleEdit}
+                  onSelect={handleSelectOrder}
                   onDelete={handleDelete}
                 />
               ))}
@@ -331,6 +339,13 @@ export default function OrdersPage({ user }: OrdersPageProps) {
         onSuccess={fetchOrders}
         userId={user.id}
         order={selectedOrder}
+      />
+
+      <OrderDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        order={selectedOrder}
+        onEdit={handleEdit}
       />
     </div>
   );
