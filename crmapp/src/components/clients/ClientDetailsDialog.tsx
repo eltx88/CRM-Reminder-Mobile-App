@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
@@ -9,12 +9,15 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, User, Phone, Mail, Calendar, Package, Coins, FileText, AlertCircle, Edit, Save } from 'lucide-react'; 
 import { toast } from 'sonner';
-import { Package, ClientDetailsDialogProps } from '../interface';
+import { ClientDetailsDialogProps, ClientDetails, Package as PackageType } from '../interface';
+import WhatsappButton from '../WhatsappButton';
 
 const clientSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
@@ -30,7 +33,7 @@ const clientSchema = z.object({
 
 type ClientFormData = z.infer<typeof clientSchema>;
 
-const fetchPackages = async (): Promise<Package[]> => {
+const fetchPackages = async (): Promise<PackageType[]> => {
   const { data, error } = await supabase.rpc('get_packages');
 
   if (error) {
@@ -38,8 +41,26 @@ const fetchPackages = async (): Promise<Package[]> => {
     throw new Error('Could not fetch packages');
   }
 
-  const response = data as { packages: Package[] } | null;
+  const response = data as { packages: PackageType[] } | null;
   return response?.packages || [];
+};
+
+const fetchClientDetails = async (userId: string, clientId: number): Promise<ClientDetails> => {
+  const { data, error } = await supabase.rpc('get_client_with_package_details', {
+    admin_uuid_param: userId,
+    client_id_param: clientId
+  });
+
+  if (error) {
+    console.error('Error fetching client details:', error);
+    throw new Error('Could not fetch client details');
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('Client not found');
+  }
+
+  return data[0] as ClientDetails;
 };
 
 const updateClient = async (clientData: any, adminId: string, clientId: number) => {
@@ -70,15 +91,34 @@ export default function ClientDetailsDialog({
   onOpenChange, 
   onSuccess, 
   userId,
-  client 
+  client,
+  clientId,
+  mode = 'view'
 }: ClientDetailsDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [clientDetails, setClientDetails] = useState<ClientDetails | null>(null);
 
-  const { data: packages, isLoading: packagesLoading } = useQuery<Package[]>({
+  // Determine which client data to use
+  const effectiveClientId = clientId || client?.id;
+  const isViewMode = mode === 'view' || !client;
+
+  const { data: packages, isLoading: packagesLoading } = useQuery<PackageType[]>({
     queryKey: ['packages'],
     queryFn: fetchPackages,
-    enabled: open,
+    enabled: open && isEditMode,
+  });
+
+  const { 
+    data: fetchedClientDetails, 
+    isLoading: clientDetailsLoading, 
+    isError: clientDetailsError,
+    error: clientDetailsErrorObj 
+  } = useQuery<ClientDetails>({
+    queryKey: ['clientDetails', userId, effectiveClientId],
+    queryFn: () => fetchClientDetails(userId, effectiveClientId!),
+    enabled: open && effectiveClientId !== null && isViewMode,
   });
 
   const form = useForm<ClientFormData>({
@@ -96,9 +136,16 @@ export default function ClientDetailsDialog({
     },
   });
 
-  // Update form when client changes
+  // Update local state when fetched data changes
   useEffect(() => {
-    if (client) {
+    if (fetchedClientDetails) {
+      setClientDetails(fetchedClientDetails);
+    }
+  }, [fetchedClientDetails]);
+
+  // Update form when client changes (for edit mode)
+  useEffect(() => {
+    if (client && isEditMode) {
       form.reset({
         name: client.name || '',
         dob: client.dob || '',
@@ -112,22 +159,22 @@ export default function ClientDetailsDialog({
       });
       setHasUnsavedChanges(false);
     }
-  }, [client, form]);
+  }, [client, form, isEditMode]);
 
   // Update package selection when packages are loaded and client is set
   useEffect(() => {
-    if (client && packages && packages.length > 0) {
+    if (client && packages && packages.length > 0 && isEditMode) {
       const currentPackageId = client.package_id?.toString();
       if (currentPackageId) {
         form.setValue('package_id', currentPackageId);
       }
     }
-  }, [client, packages, form]);
+  }, [client, packages, form, isEditMode]);
 
-  // Watch for form changes
+  // Watch for form changes (edit mode only)
   const watchedValues = form.watch();
   useEffect(() => {
-    if (client) {
+    if (client && isEditMode) {
       const hasChanges = Object.keys(watchedValues).some(key => {
         const formValue = watchedValues[key as keyof ClientFormData];
         const clientValue = client[key as keyof typeof client];
@@ -139,7 +186,16 @@ export default function ClientDetailsDialog({
       });
       setHasUnsavedChanges(hasChanges);
     }
-  }, [watchedValues, client]);
+  }, [watchedValues, client, isEditMode]);
+
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setClientDetails(null);
+      setIsEditMode(false);
+      setHasUnsavedChanges(false);
+    }
+  }, [open]);
 
   const onSubmit = async (data: ClientFormData) => {
     if (!client) return;
@@ -149,7 +205,8 @@ export default function ClientDetailsDialog({
       await updateClient(data, userId, client.id);
       toast.success('Client updated successfully!');
       setHasUnsavedChanges(false);
-      onSuccess();
+      setIsEditMode(false);
+      onSuccess?.();
     } catch (error: any) {
       console.error('Failed to update client:', error);
       toast.error(error.message || 'Failed to update client. Please try again.');
@@ -167,7 +224,7 @@ export default function ClientDetailsDialog({
     }
     form.reset();
     setHasUnsavedChanges(false);
-    onOpenChange(false);
+    setIsEditMode(false);
   };
 
   const handleOpenChange = (open: boolean) => {
@@ -179,199 +236,434 @@ export default function ClientDetailsDialog({
     }
     if (!open) {
       setHasUnsavedChanges(false);
+      setIsEditMode(false);
     }
     onOpenChange(open);
   };
 
-  if (!client) return null;
+  const handleEdit = () => {
+    setIsEditMode(true);
+  };
+
+  // Loading state
+  if (clientDetailsLoading || packagesLoading) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-[600px] lg:max-w-4xl xl:max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              Loading Client Details...
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // Error state
+  if (clientDetailsError) {
+    return (
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="sm:max-w-[600px] lg:max-w-4xl xl:max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-5 w-5" />
+              Error Loading Client
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center py-8">
+            <div className="text-center">
+              <AlertCircle className="h-12 w-12 mx-auto mb-4 text-destructive/50" />
+              <p className="text-destructive mb-4">
+                {clientDetailsErrorObj instanceof Error ? clientDetailsErrorObj.message : 'Failed to load client details'}
+              </p>
+              <Button variant="outline" onClick={() => onOpenChange(false)}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  // No client data
+  if (!client && !clientDetails) {
+    return null;
+  }
+
+  const displayClient = client || clientDetails;
+  if (!displayClient) return null;
+
+  // Helper function to get display values
+  const getDisplayValue = (key: string) => {
+    if (client) {
+      return (client as any)[key];
+    }
+    if (clientDetails) {
+      const mapping: { [key: string]: string } = {
+        'name': 'client_name',
+        'phone': 'client_phone',
+        'email': 'client_email',
+        'id': 'client_id'
+      };
+      return (clientDetails as any)[mapping[key] || key];
+    }
+    return null;
+  };
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[600px] lg:max-w-4xl xl:max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Client Details</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Client Details
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              {isViewMode && client && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEdit}
+                  className="flex items-center gap-2"
+                >
+                  <Edit className="h-4 w-4" />
+                  Edit
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onOpenChange(false)}
+                className="h-8 w-8 p-0"
+              >
+              </Button>
+            </div>
+          </div>
         </DialogHeader>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Name - Required */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name *</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter client's full name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* DOB and Phone in a row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {isEditMode && client ? (
+          // Edit Mode - Form
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* Name - Required */}
               <FormField
                 control={form.control}
-                name="dob"
+                name="name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date of Birth</FormLabel>
+                    <FormLabel>Name *</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="date" 
-                        placeholder="Enter date of birth" 
-                        {...field}
-                      />
+                      <Input placeholder="Enter client's full name" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Enter phone number" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Email */}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="Enter email address" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Package and LifeWave ID in a row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="package_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Package</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+              {/* DOB and Phone in a row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="dob"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Date of Birth</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a package" />
-                        </SelectTrigger>
+                        <Input 
+                          type="date" 
+                          placeholder="Enter date of birth" 
+                          {...field}
+                        />
                       </FormControl>
-                      <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Select a Package</SelectLabel>
-                        <SelectItem value="1">Core</SelectItem>
-                        <SelectItem value="2">Advanced</SelectItem>
-                        <SelectItem value="3">Premium</SelectItem>
-                        <SelectItem value="4">Others</SelectItem>
-                      </SelectGroup>
-                      </SelectContent>
-                    </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Enter phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Email */}
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="Enter email address" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
+              {/* Package and LifeWave ID in a row */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="package_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Package</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a package" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                        <SelectGroup>
+                          <SelectLabel>Select a Package</SelectLabel>
+                          {packages?.map((pkg) => (
+                            <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                              {pkg.name}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="lifewave_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>LifeWave ID</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Enter LifeWave ID" 
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Sponsor */}
               <FormField
                 control={form.control}
-                name="lifewave_id"
+                name="sponsor"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>LifeWave ID</FormLabel>
+                    <FormLabel>Sponsor</FormLabel>
                     <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="Enter LifeWave ID" 
-                        {...field}
+                      <Input placeholder="Enter sponsor name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Issue */}
+              <FormField
+                control={form.control}
+                name="issue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Issue</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Describe any issues or concerns" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Notes */}
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Notes</FormLabel>
+                    <FormControl>
+                      <Textarea 
+                        placeholder="Additional notes about the client..."
+                        className="min-h-[80px]"
+                        {...field} 
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-            </div>
 
-            {/* Sponsor */}
-            <FormField
-              control={form.control}
-              name="sponsor"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sponsor</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Enter sponsor name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <DialogFooter className="gap-2">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isSubmitting || !hasUnsavedChanges}>
+                  {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        ) : (
+          // View Mode - Display Cards
+          <div className="space-y-6">
+            {/* Client Basic Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Basic Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center">
+                    <User className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">{getDisplayValue('name')}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Client Membership No: {getDisplayValue('lifewave_id')}
+                    </p>
+                  </div>
+                </div>
 
-            {/* Issue */}
-            <FormField
-              control={form.control}
-              name="issue"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Issue</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Describe any issues or concerns" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {getDisplayValue('phone') && (
+                    <div className="flex items-center gap-2">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{getDisplayValue('phone')}</span>
+                      <WhatsappButton phone={getDisplayValue('phone')} />
+                    </div>
+                  )}
+                  {getDisplayValue('email') && (
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{getDisplayValue('email')}</span>
+                    </div>
+                  )}
+                </div>
 
-            {/* Notes */}
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Additional notes about the client..."
-                      className="min-h-[80px]"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                {client?.dob && (
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">Date of Birth: {new Date(client.dob).toLocaleDateString()}</span>
+                  </div>
+                )}
 
-            <DialogFooter className="gap-2">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handleCancel}
-                disabled={isSubmitting}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting || !hasUnsavedChanges}>
-                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Save Changes
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
+                {client?.sponsor && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">Sponsor: {client.sponsor}</span>
+                  </div>
+                )}
+
+                {client?.lifewave_id && (
+                  <div className="flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">LifeWave ID: {client.lifewave_id}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Package Information */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="h-5 w-5" />
+                  Package Information
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">Package</span>
+                  </div>
+                  <Badge variant="secondary" className="text-sm">
+                    {client?.package_name || clientDetails?.package_name || 'No package assigned'}
+                  </Badge>
+                </div>
+                
+                {clientDetails?.package_points && (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Coins className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-medium">Package Points</span>
+                    </div>
+                    <span className="text-sm font-semibold">
+                      {clientDetails.package_points} points
+                    </span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Additional Information */}
+            {(client?.issue || client?.notes) && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-5 w-5" />
+                    Additional Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {client?.issue && (
+                    <div>
+                      <h4 className="font-medium mb-2">Issues/Concerns</h4>
+                      <p className="text-sm text-muted-foreground">{client.issue}</p>
+                    </div>
+                  )}
+                  {client?.notes && (
+                    <div>
+                      <h4 className="font-medium mb-2">Notes</h4>
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">{client.notes}</p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Actions for view mode */}
+        {!isEditMode && (
+          <div className="flex justify-end gap-2 pt-4 border-t">
+            <Button variant="outline" onClick={() => onOpenChange(false)}>
+              Close
+            </Button>
+          </div>
+        )}
       </DialogContent>
     </Dialog>
   );

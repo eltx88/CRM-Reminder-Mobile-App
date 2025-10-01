@@ -159,11 +159,23 @@ export interface Client {
   }
   
   export interface ClientDetailsDialogProps {
-    open: boolean;
-    onOpenChange: (open: boolean) => void;
-    onSuccess: () => void;
-    userId: string;
-    client: Client | null;
+    open: boolean;
+    onOpenChange: (open: boolean) => void;
+    onSuccess?: () => void;
+    userId: string;
+    client?: Client | null;
+    clientId?: number | null;
+    mode?: 'view' | 'edit';
+  }
+
+  export interface ClientDetails {
+    client_id: number;
+    client_name: string;
+    client_email: string;
+    client_phone: string;
+    package_id: number;
+    package_name: string;
+    package_points: number;
   }
   
   export interface ClientCardProps {

@@ -9,49 +9,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import { DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import StatsCard from './StatsCard';
 import ClientCard from './ClientCard';
 import { DonutChartCard } from './DonutChartCard';
-import ClientDetailsDialog from './ClientDetailsDialog';
+import ClientDetailsDialog from '../clients/ClientDetailsDialog';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { 
-  Search,
-  ShoppingBag, 
-  RefreshCw,
-  Bell,
-  Package,
-  TrendingUp
-} from 'lucide-react';
-
-interface DashboardData {
-  stats: {
-    managedClients: number;
-    sharedClients: number;
-    activeOrders: number;
-    pendingReminders: number;
-  };
-  recentClients: Client[] | null;
-  managedPackageDistribution: { name: string; value: number }[] | null;
-  sharedPackageDistribution: { name: string; value: number }[] | null;
-  reminderTypeDistribution: { name: string; value: number }[] | null;
-}
-
-interface Client {
-  id: number;
-  name: string;
-  age: number | null;
-  issue: string | null;
-  phone: string | null;
-  lifewave_id: number | null;
-  enrollment_date?: string; 
-  expiry_date?: string;
-}
+import { Search,ShoppingBag,RefreshCw,Bell,Package,TrendingUp } from 'lucide-react';  
+import { DashboardData } from '../interface';
 
 interface DashboardPageProps {
   onClientClick: (clientId: number) => void;
