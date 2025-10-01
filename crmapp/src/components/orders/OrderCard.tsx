@@ -84,7 +84,10 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
             <div className="flex items-center gap-2 mb-2">
               <User className="h-4 w-4 text-gray-500" />
               <span className="font-medium text-gray-900">{order.client_name}</span>
-              <span className="font-small text-gray-700">Order No: #{order.id}</span>
+              <span className="font-small text-gray-700">Order No:</span>
+              {order.order_number && (
+                <span className="font-small text-gray-600">{order.order_number}</span>
+              )}
               {order.is_expired && (
                 <Badge variant="secondary" className="bg-red-50 text-red-700">
                   Expired

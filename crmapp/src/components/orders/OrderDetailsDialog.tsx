@@ -67,12 +67,15 @@ export default function OrderDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px]">
+      <DialogContent className="sm:max-w-[620px] lg:max-w-4xl xl:max-w-6xl">
         <DialogHeader>
           <DialogTitle className="flex flex-col gap-1">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Package className="h-4 w-4" />
-              <span>Order #{order.id}</span>
+              <span>Order No</span>
+              {order.order_number && (
+                <span className="text-gray-500">• #{order.order_number}</span>
+              )}
             </div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="text-xl font-semibold text-gray-900 flex items-center gap-2">

@@ -348,7 +348,7 @@ const handleSearchChange = useCallback((value: string) => {
                     className="flex items-center justify-center gap-2 w-full sm:w-auto"
                   >
                     <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline">Refresh</span>
+                    <span className="hidden sm:inline"></span>
                     Refresh
                   </Button>
                   <Button 
@@ -388,7 +388,7 @@ const handleSearchChange = useCallback((value: string) => {
           </p>
         </div>
       ) : (
-        <div className="grid gap-4 max-w-full sm:max-w-sm">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5">
           {filteredAndSortedReminders.map((reminder) => (
             <ReminderCard
               key={reminder.id}

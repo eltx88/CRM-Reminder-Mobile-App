@@ -13,6 +13,7 @@ import { Database } from '@/supabase/types';
 import * as z from 'zod';
 import { OrderItem } from '../interface';
 const orderSchema = z.object({
+    order_number: z.string().optional().transform(val => val || undefined),
     enrollment_date: z.string().min(1, 'Enrollment date is required'),
     expiry_date: z.string().min(1, 'Expiry date is required'),
     payment_mode: z.string().optional().transform(val => val || undefined),
@@ -37,6 +38,7 @@ const cloneOrderFormData = (form: orderFormData): orderFormData => ({
 
 const areOrderFormsEqual = (a: orderFormData, b: orderFormData): boolean => {
   if (
+    a.order_number !== b.order_number ||
     a.enrollment_date !== b.enrollment_date ||
     a.expiry_date !== b.expiry_date ||
     a.payment_mode !== b.payment_mode ||
@@ -99,6 +101,7 @@ export default function EditOrderDialog({
   const initialFormRef = useRef<orderFormData | null>(null);
 
   const [formData, setFormData] = useState<orderFormData>({
+    order_number: '',
     enrollment_date: '',
     expiry_date: '',
     payment_mode: '',
@@ -206,6 +209,7 @@ export default function EditOrderDialog({
       }
 
     const nextFormData: orderFormData = {
+      order_number: orderDetails.order_number || '',
       enrollment_date: orderDetails.enrollment_date,
       expiry_date: orderDetails.expiry_date || '',
       payment_mode: orderDetails.payment_mode || '',
@@ -391,6 +395,7 @@ export default function EditOrderDialog({
       const { data, error: rpcError } = await supabase.rpc('update_order', {
         admin_uuid: userId,
         order_id_param: order!.id,
+        order_number_param: validatedData.order_number,
         enrollment_date_param: validatedData.enrollment_date,
         expiry_date_param: validatedData.expiry_date,
         payment_mode_param: validatedData.payment_mode,
@@ -442,7 +447,7 @@ export default function EditOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
+      <DialogContent className="w-[95vw] max-w-2xl sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl max-h-[90vh] overflow-y-auto sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -487,6 +492,19 @@ export default function EditOrderDialog({
                 <span className="text-sm text-red-600">Failed to load client information</span>
               </div>
             )}
+          </div>
+
+          {/* Order Number */}
+          <div>
+            <Label htmlFor="order_number">Order Number</Label>
+            <Input
+              id="order_number"
+              type="text"
+              placeholder="Enter order number..."
+              value={formData.order_number}
+              onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
+              className="mt-2"
+            />
           </div>
 
           {/* Order Items */}

@@ -15,6 +15,7 @@ import { OrderItem } from '../interface';
 
 const orderSchema = z.object({
     client_id: z.string().min(1, 'Client is required'),
+    order_number: z.string().optional().transform(val => val || undefined),
     enrollment_date: z.string().min(1, 'Enrollment date is required'),
     expiry_date: z.string().min(1, 'Expiry date is required'),
     payment_mode: z.string().optional().transform(val => val || undefined),
@@ -73,6 +74,7 @@ export default function CreateOrderDialog({
 
     const [formData, setFormData] = useState<orderFormData>({
         client_id: '',
+        order_number: '',
         enrollment_date: new Date().toISOString().split('T')[0],
         expiry_date: '',
         payment_mode: '',
@@ -136,6 +138,7 @@ export default function CreateOrderDialog({
   const resetForm = () => {
     setFormData({
       client_id: '',
+      order_number: '',
       enrollment_date: new Date().toISOString().split('T')[0],
       expiry_date: '',
       payment_mode: '',
@@ -340,6 +343,7 @@ export default function CreateOrderDialog({
       const { data, error: rpcError } = await supabase.rpc('create_order', {
         admin_uuid: userId,
         client_id_param: selectedClient!.id,
+        order_number_param: validatedData.order_number,
         enrollment_date_param: validatedData.enrollment_date,
         expiry_date_param: validatedData.expiry_date,
         order_items_param: validatedData.order_items,
@@ -399,7 +403,7 @@ export default function CreateOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto sm:w-full">
+      <DialogContent className="w-[95vw] max-w-2xl sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl max-h-[90vh] overflow-y-auto sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
@@ -488,6 +492,19 @@ export default function CreateOrderDialog({
                 )}
               </div>
             )}
+        </div>
+
+        {/* Order Number */}
+        <div>
+            <Label htmlFor="order_number">Order Number </Label>
+            <Input
+                id="order_number"
+                type="text"
+                placeholder="Enter order number..."
+                value={formData.order_number}
+                onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
+                className="mt-2"
+            />
         </div>
 
         {/* Order Items */}

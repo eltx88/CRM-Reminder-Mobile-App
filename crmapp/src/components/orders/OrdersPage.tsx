@@ -125,7 +125,8 @@ export default function OrdersPage({ user }: OrdersPageProps) {
 
     if (searchTerm) {
       orders = orders.filter(order =>
-        order.client_name.toLowerCase().includes(searchTerm.toLowerCase())
+        order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
@@ -201,7 +202,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search clients..."
+                placeholder="Search clients or order numbers..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 w-full"

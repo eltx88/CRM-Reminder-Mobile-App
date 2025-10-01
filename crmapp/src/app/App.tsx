@@ -12,13 +12,12 @@ import OrdersPage from '@/components/orders/OrdersPage';
 
 // Placeholder components for other views
 const CalendarPage = () => <div className="p-4">Calendar Coming Soon</div>;
-type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail'| 'order';
+type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail'| 'orders';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [createReminderOpen, setCreateReminderOpen] = useState(false);
   const [createReminderSeed, setCreateReminderSeed] = useState<{ clientId: number; clientName: string } | null>(null);
 
@@ -53,21 +52,17 @@ export default function App() {
 
   const handleTabChange = (tab: string) => {
     setActiveView(tab as View);
-    // Reset selected client if we navigate away from the detail view
-    if (tab !== 'client-detail') {
-      setSelectedClientId(null);
-    }
+    console.log(tab);
   };
 
   const handleClientClick = (clientId: number) => {
-    setSelectedClientId(clientId);
     setActiveView('client-detail');
   };
 
   const handleCreateReminder = (clientId: number, clientName: string) => {
     setCreateReminderSeed({ clientId, clientName });
     setCreateReminderOpen(true);
-    setActiveView('reminders'); // Switch to reminders view
+    setActiveView('reminders');
   };
 
   const renderContent = () => {
@@ -76,6 +71,8 @@ export default function App() {
         return <DashboardPage user={user!} onClientClick={handleClientClick} />;
       case 'clients':
         return <ClientsPage user={user!} onCreateReminder={handleCreateReminder} />;
+      case 'orders':
+      return <OrdersPage user={user} />;
       case 'reminders':
         return <RemindersPage 
         user={user!} 
@@ -85,10 +82,8 @@ export default function App() {
       />;
       case 'calendar':
         return <CalendarPage />;
-      case 'order':
-      return <OrdersPage user={user} />;
       default:
-        return <OrdersPage user={user!}/>;
+        return <DashboardPage user={user!} onClientClick={handleClientClick}/>;
     }
   };
 

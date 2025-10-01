@@ -48,6 +48,7 @@ export interface Client {
    */
   export interface FetchedOrder {
     order_id: number;
+    order_number: string | null;
     client_id: number;
     client_name: string;
     enrollment_date: string; // ISO date string
@@ -209,3 +210,16 @@ export interface Client {
   
   export type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';
   export type ReminderSortBy = 'trigger_date' | 'created_at' | 'client_name';
+
+  export interface DashboardData {
+    stats: {
+      managedClients: number;
+      sharedClients: number;
+      activeOrders: number;
+      pendingReminders: number;
+    };
+    recentClients: Client[] | null;
+    managedPackageDistribution: { name: string; value: number }[] | null;
+    sharedPackageDistribution: { name: string; value: number }[] | null;
+    reminderTypeDistribution: { name: string; value: number }[] | null;
+  }

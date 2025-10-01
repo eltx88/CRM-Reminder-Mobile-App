@@ -226,6 +226,7 @@ export type Database = {
           id: number
           notes: string | null
           order_items: string | null
+          order_number: string | null
           payment_date: string | null
           payment_mode: string | null
           shipping_location: string | null
@@ -238,6 +239,7 @@ export type Database = {
           id?: number
           notes?: string | null
           order_items?: string | null
+          order_number?: string | null
           payment_date?: string | null
           payment_mode?: string | null
           shipping_location?: string | null
@@ -250,6 +252,7 @@ export type Database = {
           id?: number
           notes?: string | null
           order_items?: string | null
+          order_number?: string | null
           payment_date?: string | null
           payment_mode?: string | null
           shipping_location?: string | null
@@ -381,19 +384,34 @@ export type Database = {
         Returns: Json
       }
       create_order: {
-        Args: {
-          admin_uuid: string
-          client_id_param: number
-          collection_date_param?: string
-          enrollment_date_param: string
-          expiry_date_param: string
-          notes_param?: string
-          order_items_param?: Json
-          order_items_text_param?: string
-          payment_date_param?: string
-          payment_mode_param?: string
-          shipping_location_param?: string
-        }
+        Args:
+          | {
+              admin_uuid: string
+              client_id_param: number
+              collection_date_param?: string
+              enrollment_date_param: string
+              expiry_date_param: string
+              notes_param?: string
+              order_items_param?: Json
+              order_items_text_param?: string
+              order_number_param: string
+              payment_date_param?: string
+              payment_mode_param?: string
+              shipping_location_param?: string
+            }
+          | {
+              admin_uuid: string
+              client_id_param: number
+              collection_date_param?: string
+              enrollment_date_param: string
+              expiry_date_param: string
+              notes_param?: string
+              order_items_param?: Json
+              order_items_text_param?: string
+              payment_date_param?: string
+              payment_mode_param?: string
+              shipping_location_param?: string
+            }
         Returns: number
       }
       create_reminder: {
@@ -428,6 +446,7 @@ export type Database = {
           notes: string
           order_id: number
           order_items: string
+          order_number: string
           payment_date: string
           payment_mode: string
           shipping_location: string
@@ -484,6 +503,7 @@ export type Database = {
           order_id: number
           order_items: string
           order_notes: string
+          order_number: string
           payment_date: string
           payment_mode: string
           point_cost: number
@@ -505,6 +525,7 @@ export type Database = {
           notes: string
           order_id: number
           order_items: string
+          order_number: string
           payment_date: string
           payment_mode: string
           shipping_location: string
@@ -594,19 +615,34 @@ export type Database = {
         Returns: Json
       }
       update_order: {
-        Args: {
-          admin_uuid: string
-          collection_date_param?: string
-          enrollment_date_param: string
-          expiry_date_param: string
-          notes_param?: string
-          order_id_param: number
-          order_items_param?: Json
-          order_items_text_param?: string
-          payment_date_param?: string
-          payment_mode_param?: string
-          shipping_location_param?: string
-        }
+        Args:
+          | {
+              admin_uuid: string
+              collection_date_param?: string
+              enrollment_date_param: string
+              expiry_date_param: string
+              notes_param?: string
+              order_id_param: number
+              order_items_param?: Json
+              order_items_text_param?: string
+              order_number_param: string
+              payment_date_param?: string
+              payment_mode_param?: string
+              shipping_location_param?: string
+            }
+          | {
+              admin_uuid: string
+              collection_date_param?: string
+              enrollment_date_param: string
+              expiry_date_param: string
+              notes_param?: string
+              order_id_param: number
+              order_items_param?: Json
+              order_items_text_param?: string
+              payment_date_param?: string
+              payment_mode_param?: string
+              shipping_location_param?: string
+            }
         Returns: boolean
       }
       update_reminder: {
