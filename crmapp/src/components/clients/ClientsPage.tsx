@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/supabase/client';
+import { useData } from '@/contexts/DataContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -64,22 +63,6 @@ const calculateAge = (dob: string | null): number | null => {
   return age;
 };
 
-const fetchClientsData = async (userId: string): Promise<ClientsData> => {
-  const { data, error } = await supabase.rpc('get_clients_data', {
-    admin_uuid: userId
-  });
-
-  if (error) {
-    console.error('Error fetching clients data:', error);
-    throw new Error('Could not fetch clients data');
-  }
-
-  const response = data as unknown as ClientsDataResponse;
-  return {
-    managedClients: response?.managedClients || [],
-    sharedClients: response?.sharedClients || []
-  };
-};
 
 export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps) {
   const [activeTab, setActiveTab] = useState('managed');
@@ -93,14 +76,11 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   const [createOrderSeed, setCreateOrderSeed] = useState<{ clientId: number; clientName: string } | null>(null);
 
   const { 
-    data, 
-    isLoading, 
-    isError,
-    refetch 
-  } = useQuery<ClientsData>({
-    queryKey: ['clientsData', user.id], 
-    queryFn: () => fetchClientsData(user.id), 
-  });
+    clientsData: data, 
+    isLoading: { clientsData: isLoading }, 
+    errors: { clientsData: isError },
+    fetchClientsData: refetch 
+  } = useData();
 
   const sortClients = (clients: any[]) => {
     return [...clients].sort((a, b) => {
@@ -158,7 +138,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
 
   const handleCreateSuccess = () => {
     setIsCreateDialogOpen(false);
-    refetch();
+    refetch(user.id, true);
   };
 
   const handleClientClick = (client: Client) => {
@@ -169,13 +149,13 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   const handleDetailsSuccess = () => {
     setIsDetailsDialogOpen(false);
     setSelectedClient(null);
-    refetch();
+    refetch(user.id, true);
   };
 
   const handleCreateOrderSuccess = () => {
     setIsCreateOrderDialogOpen(false);
     setCreateOrderSeed(null);
-    refetch();
+    refetch(user.id, true);
   };
 
   const handleCreateOrder = (clientId: number, clientName: string) => {
@@ -199,7 +179,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     return (
       <div className="p-4 text-center text-destructive">
         Failed to load clients data. Please try again.
-        <Button variant="outline" onClick={() => refetch()} className="ml-2">
+        <Button variant="outline" onClick={() => refetch(user.id, true)} className="ml-2">
           <RefreshCw className="h-4 w-4 mr-2" />
           Retry
         </Button>
@@ -218,7 +198,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
           Clients
         </h1>
         </div>
-        <Button variant="outline" onClick={() => refetch()}>
+        <Button variant="outline" onClick={() => refetch(user.id, true)}>
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>

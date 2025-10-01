@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/supabase/client';
+import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -23,19 +22,6 @@ interface DashboardPageProps {
   user: SupabaseUser;
 }
 
-const fetchDashboardData = async (userId: string): Promise<DashboardData> => {
-  const { data, error } = await supabase.rpc('get_dashboard_data', {
-    admin_uuid: userId,
-  });
-
-  if (error) {
-    console.error("Error fetching dashboard data via RPC:", error);
-    throw new Error('Could not fetch dashboard data.');
-  }
-
-  return data as unknown as DashboardData;
-};
-
 export default function EnhancedDashboard({ user, onClientClick }: DashboardPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('packages');
@@ -45,14 +31,11 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   
   const { 
-    data, 
-    isLoading, 
-    isError,
-    refetch 
-  } = useQuery<DashboardData>({
-    queryKey: ['dashboardData', user.id], 
-    queryFn: () => fetchDashboardData(user.id), 
-  });
+    dashboardData: data, 
+    isLoading: { dashboardData: isLoading }, 
+    errors: { dashboardData: isError },
+    fetchDashboardData: refetch 
+  } = useData();
 
   const filteredClients = data?.recentClients?.filter(client =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -153,7 +136,7 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
             className="pl-10"
           />
         </div>
-        <Button variant="outline" onClick={() => refetch()} className="ml-4">
+        <Button variant="outline" onClick={() => refetch(user.id, true)} className="ml-4">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>

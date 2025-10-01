@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
+import { useData } from '@/contexts/DataContext';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -62,9 +63,8 @@ const formatPhoneForWhatsApp = (phone: string): string => {
 
 export default function RemindersPage({ user, createDialogOpen = false, onCreateDialogChange, createSeed }: RemindersPageProps) {
     const [reminders, setReminders] = useState<Reminder[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
     const [showActiveOnly, setShowActiveOnly] = useState(true);
+    const [localError, setLocalError] = useState<string | null>(null);
 
     // Filter and search states
     const [searchTerm, setSearchTerm] = useState('');
@@ -87,47 +87,40 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     const [selectedReminder, setSelectedReminder] = useState<Reminder | null>(null);
     const hasFetchedRef = useRef(false);
 
-  // Fetch reminders function
-  const fetchReminders = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-       
-      const { data, error } = await supabase.rpc('get_reminders_for_admin', {
-        admin_uuid: user.id,
-        search_term: searchTerm,
-        reminder_type_filter: reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter,
-        sort_by: sortBy,
-        sort_order: sortOrder
-      });
+    // Get data from context
+    const { 
+      remindersData, 
+      isLoading: { remindersData: loading }, 
+      errors: { remindersData: contextError },
+      fetchRemindersData: refetch,
+      invalidateCache
+    } = useData();
 
-      if (error) throw error;
-
-      const reminders: Reminder[]  = (data || []).map((r) => ({
+    // Process reminders when data changes
+    const processedReminders = useMemo(() => {
+      if (!remindersData) return [];
+      
+      return remindersData.map((r) => ({
         id: r.id,
         client_id: r.client_id,
         client_name: r.client_name,
         client_phone: r.client_phone,
         order_id: r.order_id,
-        reminder_type: (r.reminder_type === 'EXPIRY' ? 'EXPIRY' : 'FOLLOW_UP'),
+        reminder_type: (r.reminder_type === 'EXPIRY' ? 'EXPIRY' : 'FOLLOW_UP') as 'FOLLOW_UP' | 'EXPIRY',
         trigger_date: r.trigger_date,
         message: r.message,
-        status:
-          r.status === 'COMPLETED'
+        status: (r.status === 'COMPLETED'
             ? 'COMPLETED'
             : r.status === 'DISMISSED'
             ? 'DISMISSED'
-            : 'PENDING'
+            : 'PENDING') as 'PENDING' | 'COMPLETED' | 'DISMISSED'
       }));
-      setReminders(reminders);
-      
-    } catch (err) {
-      console.error('Error fetching reminders:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch reminders');
-    } finally {
-      setLoading(false);
-    }
-  }, [user.id, searchTerm, reminderTypeFilter, sortBy, sortOrder]);
+    }, [remindersData]);
+
+    // Update local state when processed reminders change
+    useEffect(() => {
+      setReminders(processedReminders);
+    }, [processedReminders]);
 const handleSearchChange = useCallback((value: string) => {
     setSearchTerm(value);
     if (value.trim().length > 0) {
@@ -144,12 +137,12 @@ const handleSearchChange = useCallback((value: string) => {
       return;
     }
     hasFetchedRef.current = true;
-    fetchReminders();
-  }, [fetchReminders]);
+    refetch(user.id, searchTerm, false);
+  }, [refetch, user.id, searchTerm]);
 
   const handleRefresh = useCallback(() => {
-    fetchReminders();
-  }, [fetchReminders]);
+    refetch(user.id, searchTerm, true);
+  }, [refetch, user.id, searchTerm]);
 
   // Handle reminder status change
   const handleStatusChange = async (reminderId: number, status: 'PENDING' | 'COMPLETED' | 'DISMISSED') => {
@@ -164,13 +157,14 @@ const handleSearchChange = useCallback((value: string) => {
       
       const result = data as { success: boolean; message: string };
       if (result.success) {
-        await fetchReminders();
+        // Invalidate cache to refresh data
+        invalidateCache('remindersData');
       } else {
-        setError(result.message);
+        setLocalError(result.message);
       }
     } catch (err) {
       console.error('Error updating reminder status:', err);
-      setError(err instanceof Error ? err.message : 'Failed to update reminder');
+      setLocalError(err instanceof Error ? err.message : 'Failed to update reminder');
     }
   };
 
@@ -186,13 +180,14 @@ const handleSearchChange = useCallback((value: string) => {
       
       const result = data as { success: boolean; message: string };
       if (result.success) {
-        await fetchReminders();
+        // Invalidate cache to refresh data
+        invalidateCache('remindersData');
       } else {
-        setError(result.message);
+        setLocalError(result.message);
       }
     } catch (err) {
       console.error('Error deleting reminder:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete reminder');
+      setLocalError(err instanceof Error ? err.message : 'Failed to delete reminder');
     }
   };
 
@@ -366,9 +361,9 @@ const handleSearchChange = useCallback((value: string) => {
     </div>
   
       {/* Error */}
-      {error && (
+      {contextError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
+          {contextError}
         </div>
       )}
   
@@ -405,18 +400,18 @@ const handleSearchChange = useCallback((value: string) => {
         <CreateReminderDialog
         open={isCreateDialogOpen}
         onOpenChange={handleCreateDialogChange}
-        onSuccess={fetchReminders}
+        onSuccess={() => invalidateCache('remindersData')}
         userId={user.id}
         preselectedClient={createSeed}
-        />
+      />
 
-        <EditReminderDialog
+      <EditReminderDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={fetchReminders}
+        onSuccess={() => invalidateCache('remindersData')}
         userId={user.id}
         reminder={selectedReminder}
-        />
+      />
 
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { User } from '@supabase/supabase-js';
+import { useData } from '@/contexts/DataContext';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,8 +26,7 @@ interface OrdersPageProps {
 
 export default function OrdersPage({ user }: OrdersPageProps) {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
   
   // Filter and search states
@@ -41,33 +41,31 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
 
-  // Fetch orders function
-  const fetchOrders = useCallback(async () => {
-    try {
-      setLoading(true);
-      setError(null);
-       
-      const { data, error } = await supabase.rpc('get_orders', {
-        admin_uuid: user.id
-      });
-  
-      if (error) throw error;
-  
-      const processedOrders: Order[] = (data as FetchedOrder[] || []).map(o => ({
-        ...o,
-        id: o.order_id,
-        is_expired: new Date(o.expiry_date) < new Date(),
-        can_edit: !o.is_shared,
-      }));
-      setAllOrders(processedOrders);
-      
-    } catch (err) {
-      console.error('Error fetching orders:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch orders');
-    } finally {
-      setLoading(false);
-    }
-  }, [user.id]);
+  // Get data from context
+  const { 
+    ordersData, 
+    isLoading: { ordersData: loading }, 
+      errors: { ordersData: contextError },
+    fetchOrdersData: refetch,
+    invalidateCache
+  } = useData();
+
+  // Process orders when data changes
+  const processedOrders = useMemo(() => {
+    if (!ordersData) return [];
+    
+    return ordersData.map(order => ({
+      ...order,
+      id: order.order_id,
+      is_expired: new Date(order.expiry_date) < new Date(),
+      can_edit: !order.is_shared,
+    }));
+  }, [ordersData]);
+
+  // Update local state when processed orders change
+  useEffect(() => {
+    setAllOrders(processedOrders);
+  }, [processedOrders]);
 
   // Initial load (guarded for strict mode double call)
   useEffect(() => {
@@ -75,12 +73,12 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       return;
     }
     hasFetchedRef.current = true;
-    fetchOrders();
-  }, [fetchOrders]);
+    refetch(user.id);
+  }, [refetch, user.id]);
 
   const handleRefresh = useCallback(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    refetch(user.id, true);
+  }, [refetch, user.id]);
 
   // Handle order deletion
   const handleDelete = async (orderId: number) => {
@@ -93,13 +91,14 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       if (error) throw error;
       
       if (data === true) {
-        await fetchOrders();
+        // Invalidate cache to refresh data
+        invalidateCache('ordersData');
       } else {
-        setError('Failed to delete order');
+        setLocalError('Failed to delete order');
       }
     } catch (err) {
       console.error('Error deleting order:', err);
-      setError(err instanceof Error ? err.message : 'Failed to delete order');
+      setLocalError(err instanceof Error ? err.message : 'Failed to delete order');
     }
   };
 
@@ -254,9 +253,9 @@ export default function OrdersPage({ user }: OrdersPageProps) {
         </div>
       </div>
 
-      {error && (
+      {contextError && (
         <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
-          {error}
+          {contextError}
         </div>
       )}
 
@@ -330,14 +329,14 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       <CreateOrderDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onSuccess={fetchOrders}
+        onSuccess={() => invalidateCache('ordersData')}
         userId={user.id}
       />
 
       <EditOrderDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={fetchOrders}
+        onSuccess={() => invalidateCache('ordersData')}
         userId={user.id}
         order={selectedOrder}
       />

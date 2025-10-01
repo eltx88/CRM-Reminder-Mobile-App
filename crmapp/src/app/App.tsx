@@ -9,12 +9,15 @@ import DashboardPage from '@/components/dashboard/Dashboard';
 import ClientsPage from '@/components/clients/ClientsPage';
 import RemindersPage from '@/components/reminders/RemindersPage';
 import OrdersPage from '@/components/orders/OrdersPage';
+import { DataProvider, useData } from '@/contexts/DataContext';
 
 // Placeholder components for other views
 const CalendarPage = () => <div className="p-4">Calendar Coming Soon</div>;
 type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail'| 'orders';
 
-export default function App() {
+// Data initialization component
+function AppContent() {
+  const { fetchDashboardData, fetchClientsData, fetchOrdersData, fetchRemindersData } = useData();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<View>('dashboard');
@@ -37,6 +40,17 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Initialize data when user is available
+  useEffect(() => {
+    if (user) {
+      // Load all data on app initialization
+      fetchDashboardData(user.id);
+      fetchClientsData(user.id);
+      fetchOrdersData(user.id);
+      fetchRemindersData(user.id);
+    }
+  }, [user, fetchDashboardData, fetchClientsData, fetchOrdersData, fetchRemindersData]);
 
   if (!user) {
     return <LoginPage onLogin={(loggedInUser:any) => setUser(loggedInUser)} />;
@@ -96,5 +110,13 @@ export default function App() {
     >
       {renderContent()}
     </AppLayout>
+  );
+}
+
+export default function App() {
+  return (
+    <DataProvider>
+      <AppContent />
+    </DataProvider>
   );
 }
