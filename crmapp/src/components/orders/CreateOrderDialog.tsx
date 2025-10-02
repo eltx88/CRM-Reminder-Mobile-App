@@ -343,7 +343,7 @@ export default function CreateOrderDialog({
       const { data, error: rpcError } = await supabase.rpc('create_order', {
         admin_uuid: userId,
         client_id_param: selectedClient!.id,
-        order_number_param: validatedData.order_number,
+        order_number_param: validatedData.order_number ?? '',
         enrollment_date_param: validatedData.enrollment_date,
         expiry_date_param: validatedData.expiry_date,
         order_items_param: validatedData.order_items,

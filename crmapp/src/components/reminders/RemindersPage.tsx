@@ -6,11 +6,15 @@ import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from '@/components/ui/select';
-import { Search, Filter, Calendar, SortAsc, SortDesc, RefreshCw } from 'lucide-react';
+import { Search, Filter, Calendar, SortAsc, SortDesc, RefreshCw, Bell, Plus } from 'lucide-react';
 import ReminderCard from './ReminderCard';
 import CreateReminderDialog from './CreateReminderDialog';
 import EditReminderDialog from './EditReminderDialog'; 
 import { Switch } from '../ui/switch';
+import { DateRangeFilter } from '@/components/DateRangeFilter';
+import { PaginationControls } from '@/components/PaginationControls';
+import { PAGINATION_THRESHOLDS, DEFAULT_PAGE_SIZE } from '@/constants/pagination';
+import { DateRangeType } from '@/components/DateRangeFilter';
 // Types
 interface Reminder {
   id: number;
@@ -28,21 +32,7 @@ interface Reminder {
 type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';
 type ReminderSortBy = 'trigger_date' | 'created_at' | 'client_name';
 type SortOrder = 'ASC' | 'DESC';
-type ReminderDateFilter = 'TODAY' | 'ALL';
 
-const isToday = (dateString: string): boolean => {
-  const date = new Date(dateString);
-  if (Number.isNaN(date.getTime())) {
-    return false;
-  }
-
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
-};
 
 interface RemindersPageProps {
   user: User;
@@ -71,7 +61,18 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     const [reminderTypeFilter, setReminderTypeFilter] = useState<ReminderTypeFilter>('ALL');
     const [sortBy, setSortBy] = useState<ReminderSortBy>('trigger_date');
     const [sortOrder, setSortOrder] = useState<SortOrder>('ASC');
-    const [dateFilter, setDateFilter] = useState<ReminderDateFilter>('TODAY');
+    
+    // Date range state
+    const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({ 
+      startDate: null, 
+      endDate: null 
+    });
+    const [currentDateRangeType, setCurrentDateRangeType] = useState<DateRangeType>('today');
+    
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
+    const [useServerSidePagination, setUseServerSidePagination] = useState(false);
     
     // Dialog states
     const [internalCreateDialogOpen, setInternalCreateDialogOpen] = useState(false);
@@ -100,7 +101,10 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     const processedReminders = useMemo(() => {
       if (!remindersData) return [];
       
-      return remindersData.map((r) => ({
+      // Handle both paginated and non-paginated responses
+      const reminders = 'reminders' in remindersData ? remindersData.reminders : remindersData;
+      
+      return reminders.map((r) => ({
         id: r.id,
         client_id: r.client_id,
         client_name: r.client_name,
@@ -121,14 +125,24 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     useEffect(() => {
       setReminders(processedReminders);
     }, [processedReminders]);
-const handleSearchChange = useCallback((value: string) => {
-    setSearchTerm(value);
-    if (value.trim().length > 0) {
-      setDateFilter('ALL');
-    } else {
-      setDateFilter('TODAY');
+  // Determine if we should use server-side pagination
+  useEffect(() => {
+    if (remindersData && 'totalCount' in remindersData) {
+      setUseServerSidePagination(remindersData.totalCount > PAGINATION_THRESHOLDS.REMINDERS);
     }
-  }, []);
+  }, [remindersData]);
+
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page
+    
+    if (useServerSidePagination) {
+      // Server-side search
+      invalidateCache('remindersData');
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, value, reminderTypeFilter, sortBy, sortOrder, 1, itemsPerPage, true);
+    }
+    // For client-side, filtering happens in useMemo below
+  }, [useServerSidePagination, user.id, dateRange, reminderTypeFilter, sortBy, sortOrder, refetch, invalidateCache, itemsPerPage]);
 
 
   // Initial load (guard for strict mode double call)
@@ -137,12 +151,24 @@ const handleSearchChange = useCallback((value: string) => {
       return;
     }
     hasFetchedRef.current = true;
-    refetch(user.id, searchTerm, false);
-  }, [refetch, user.id, searchTerm]);
+    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage);
+  }, [refetch, user.id, searchTerm, dateRange, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
 
   const handleRefresh = useCallback(() => {
-    refetch(user.id, searchTerm, true);
-  }, [refetch, user.id, searchTerm]);
+    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+  }, [refetch, user.id, searchTerm, dateRange, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
+
+  // Handle date range change
+  const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
+    setDateRange({ startDate, endDate });
+    if (rangeType) {
+      setCurrentDateRangeType(rangeType);
+    }
+    setCurrentPage(1); // Reset to first page
+    // Invalidate cache and fetch with new date range
+    invalidateCache('remindersData');
+    refetch(user.id, startDate || undefined, endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, 1, itemsPerPage, true);
+  }, [user.id, searchTerm, reminderTypeFilter, sortBy, sortOrder, refetch, invalidateCache, itemsPerPage]);
 
   // Handle reminder status change
   const handleStatusChange = async (reminderId: number, status: 'PENDING' | 'COMPLETED' | 'DISMISSED') => {
@@ -197,70 +223,131 @@ const handleSearchChange = useCallback((value: string) => {
     setEditDialogOpen(true);
   };
 
+  // Handle page change
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    if (useServerSidePagination) {
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, page, itemsPerPage, true);
+    }
+  }, [useServerSidePagination, user.id, dateRange, searchTerm, reminderTypeFilter, sortBy, sortOrder, refetch, itemsPerPage]);
+
+  // Handle items per page change
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+    if (useServerSidePagination) {
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, 1, newItemsPerPage, true);
+    }
+  }, [useServerSidePagination, user.id, dateRange, searchTerm, reminderTypeFilter, sortBy, sortOrder, refetch]);
+
   // Toggle sort order
   const toggleSortOrder = () => {
     setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
+    if (useServerSidePagination) {
+      const newSortOrder = sortOrder === 'ASC' ? 'DESC' : 'ASC';
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, newSortOrder, currentPage, itemsPerPage, true);
+    }
   };
 
   //Filter for active reminders
   const filteredAndSortedReminders = useMemo(() => {
     let result = [...reminders];
 
-    if (searchTerm) {
-      const lowerSearch = searchTerm.toLowerCase();
-      result = result.filter(r =>
-        r.client_name.toLowerCase().includes(lowerSearch) ||
-        r.message.toLowerCase().includes(lowerSearch)
-      );
+    // Only apply client-side filtering if not using server-side pagination
+    if (!useServerSidePagination) {
+      if (searchTerm) {
+        const lowerSearch = searchTerm.toLowerCase();
+        result = result.filter(r =>
+          r.client_name.toLowerCase().includes(lowerSearch) ||
+          r.message.toLowerCase().includes(lowerSearch)
+        );
+      }
+
+      if (reminderTypeFilter !== 'ALL') {
+        result = result.filter(r => r.reminder_type === reminderTypeFilter);
+      }
     }
 
-    if (reminderTypeFilter !== 'ALL') {
-      result = result.filter(r => r.reminder_type === reminderTypeFilter);
-    }
-
-    if (dateFilter === 'TODAY') {
-      result = result.filter(r => isToday(r.trigger_date));
-    }
 
     if (showActiveOnly) {
       result = result.filter(r => r.status !== 'DISMISSED' && r.status !== 'COMPLETED');
     }
 
-    result.sort((a, b) => {
-      let valA: number | string = '';
-      let valB: number | string = '';
+    // Only apply client-side sorting if not using server-side pagination
+    if (!useServerSidePagination) {
+      result.sort((a, b) => {
+        let valA: number | string = '';
+        let valB: number | string = '';
 
-      switch (sortBy) {
-        case 'client_name':
-          valA = a.client_name.toLowerCase();
-          valB = b.client_name.toLowerCase();
-          break;
-        case 'created_at':
-          valA = a.created_at ? new Date(a.created_at).getTime() : 0;
-          valB = b.created_at ? new Date(b.created_at).getTime() : 0;
-          break;
-        case 'trigger_date':
-        default:
-          valA = new Date(a.trigger_date).getTime();
-          valB = new Date(b.trigger_date).getTime();
-          break;
-      }
+        switch (sortBy) {
+          case 'client_name':
+            valA = a.client_name.toLowerCase();
+            valB = b.client_name.toLowerCase();
+            break;
+          case 'created_at':
+            valA = a.created_at ? new Date(a.created_at).getTime() : 0;
+            valB = b.created_at ? new Date(b.created_at).getTime() : 0;
+            break;
+          case 'trigger_date':
+          default:
+            valA = new Date(a.trigger_date).getTime();
+            valB = new Date(b.trigger_date).getTime();
+            break;
+        }
 
-      if (valA < valB) return sortOrder === 'ASC' ? -1 : 1;
-      if (valA > valB) return sortOrder === 'ASC' ? 1 : -1;
-      return 0;
-    });
+        if (valA < valB) return sortOrder === 'ASC' ? -1 : 1;
+        if (valA > valB) return sortOrder === 'ASC' ? 1 : -1;
+        return 0;
+      });
+    }
 
     return result;
-  }, [reminders, searchTerm, reminderTypeFilter, dateFilter, showActiveOnly, sortBy, sortOrder]);
+  }, [reminders, searchTerm, reminderTypeFilter, showActiveOnly, sortBy, sortOrder, useServerSidePagination]);
 
 
 
   return (
-    <div className="space-y-6 px-3 md:px-4">
-    {/* Filters and Actions (3 rows, fluid) */}
-    <div className="p-4 bg-gray-50 rounded-lg">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+    <div className="space-y-1 px-2 mt-3 md:px-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Bell className="h-6 w-6 sm:h-8 sm:w-8" />
+            Reminders
+          </h1>
+          <Button
+            variant="outline"
+            onClick={handleRefresh}
+            disabled={loading}
+            className="flex items-center justify-center gap-2"
+            size="sm"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button 
+            onClick={() => handleCreateDialogChange(true)}
+            className="flex items-center justify-center gap-2 justify-end" 
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="flex hidden sm:inline">Create Reminder</span>
+            <span className="sm:hidden">Create</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* Filters and Actions */}
+      <div className="p-4 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-12">
+            {/* Row 0: Date Range Filter */}
+            <div className="md:col-span-12">
+              <DateRangeFilter
+                type="reminders"
+                onDateRangeChange={handleDateRangeChange}
+              />
+            </div>
+
             {/* Row 1: Search */}
             <div className="md:col-span-12">
                 <div className="relative">
@@ -274,7 +361,7 @@ const handleSearchChange = useCallback((value: string) => {
                 </div>
             </div>
 
-            {/* Row 2: Follow Up + Sort order icon (next to each other) */}
+            {/* Row 2: Follow Up filter */}
             <div className="md:col-span-12">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-3">
                 <div className="flex flex-col gap-2 min-w-[160px]">
@@ -293,68 +380,37 @@ const handleSearchChange = useCallback((value: string) => {
                     <SelectItem value="ALL">All Types</SelectItem>
                     </SelectContent>
                 </Select>
-
-                <Select
-                    value={dateFilter}
-                    onValueChange={(v) => setDateFilter(v as ReminderDateFilter)}
-                >
-                    <SelectTrigger className="w-full">
-                    <Calendar className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Filter by date" />
-                    </SelectTrigger>
-                    <SelectContent>
-                    <SelectItem value="TODAY">Reminders Today</SelectItem>
-                    <SelectItem value="ALL">All Reminders</SelectItem>
-                    </SelectContent>
-                </Select>
                 </div>
-
-                {/* Sort order icon directly next to Follow Up */}
-                <Button variant="outline" onClick={toggleSortOrder} className="p-2">
-                {sortOrder === 'ASC' ? (
-                    <SortAsc className="h-5 w-5" />
-                ) : (
-                    <SortDesc className="h-5 w-5" />
-                )}
-                </Button>
             </div>
             </div>
 
-            {/* Row 3: Left switch, right actions */}
-            <div className="md:col-span-12">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="show-active"
-                    checked={showActiveOnly}
-                    onCheckedChange={setShowActiveOnly}
-                  />
-                  <label htmlFor="show-active" className="text-sm">
-                    Show active
-                  </label>
+            {/* Row 3: Sort button (when not today), Switch, and Create button */}
+            <div className="md:col-span-12 mt-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  {/* Sort button - only show when not today */}
+                  {currentDateRangeType !== 'today' && (
+                    <Button variant="outline" onClick={toggleSortOrder} className="p-2">
+                      {sortOrder === 'ASC' ? (
+                        <SortAsc className="h-5 w-5" />
+                      ) : (
+                        <SortDesc className="h-5 w-5" />
+                      )}
+                    </Button>
+                  )}
+                  
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      id="show-active"
+                      checked={showActiveOnly}
+                      onCheckedChange={setShowActiveOnly}
+                    />
+                    <label htmlFor="show-active" className="text-sm">
+                      Show active
+                    </label>
+                  </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row sm:ml-auto items-stretch sm:items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleRefresh}
-                    disabled={loading}
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
-                  >
-                    <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                    <span className="hidden sm:inline"></span>
-                    Refresh
-                  </Button>
-                  <Button 
-                    onClick={() => handleCreateDialogChange(true)}
-                    size="sm"
-                    className="flex items-center justify-center gap-2 w-full sm:w-auto"
-                  >
-                    <span className="hidden sm:inline">Add Reminder</span>
-                    <span className="sm:hidden">Add</span>
-                  </Button>
-                </div>
               </div>
             </div>
         </div>
@@ -394,6 +450,18 @@ const handleSearchChange = useCallback((value: string) => {
                 />
           ))}
         </div>
+      )}
+  
+      {/* Pagination Controls - only show for server-side pagination */}
+      {useServerSidePagination && remindersData && 'totalCount' in remindersData && (
+        <PaginationControls
+          currentPage={remindersData.currentPage}
+          totalPages={remindersData.totalPages}
+          totalItems={remindersData.totalCount}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
       )}
   
       {/* Dialogs unchanged */}

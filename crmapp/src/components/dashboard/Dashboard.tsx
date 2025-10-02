@@ -15,7 +15,7 @@ import { DonutChartCard } from './DonutChartCard';
 import ClientDetailsDialog from '../clients/ClientDetailsDialog';
 import { User as SupabaseUser } from '@supabase/supabase-js';
 import { Search,ShoppingBag,RefreshCw,Bell,Package,TrendingUp } from 'lucide-react';  
-import { DashboardData } from '../interface';
+import { DashboardData } from '@/components/interface';
 
 interface DashboardPageProps {
   onClientClick: (clientId: number) => void;
@@ -136,7 +136,7 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
             className="pl-10"
           />
         </div>
-        <Button variant="outline" onClick={() => refetch(user.id, true)} className="ml-4">
+        <Button variant="outline" onClick={() => refetch(user.id, undefined, undefined, true)} className="ml-4">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
         </Button>

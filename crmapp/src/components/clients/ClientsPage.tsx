@@ -188,39 +188,57 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   }
 
   return (
-    <div className="p-4 space-y-6">
+    <div className="space-y-1 px-3 mt-3 md:px-4">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <Users className="h-6 w-6 sm:h-8 sm:w-8" />
-          Clients
-        </h1>
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Users className="h-6 w-6 sm:h-8 sm:w-8" />
+            Clients
+          </h1>
+          <Button
+            variant="outline"
+            onClick={() => refetch(user.id, true)}
+            className="flex items-center justify-center gap-2"
+            size="sm"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+          <Button 
+            onClick={() => setIsCreateDialogOpen(true)} 
+            className="flex items-center justify-center gap-2"
+            size="sm"
+          >
+            <Plus className="h-4 w-4" />
+            <span className="hidden sm:inline">Create Client</span>
+            <span className="sm:hidden">Create</span>
+          </Button>
         </div>
-        <Button variant="outline" onClick={() => refetch(user.id, true)}>
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
       </div>
 
-      <div className="relative max-w-md flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search clients by name, email, or phone..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      {/* Search and Filters */}
+      <div className="p-2 bg-gray-50 rounded-lg">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-12">
+          <div className="md:col-span-12">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search clients by name, email, or phone..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 w-full"
+              />
+            </div>
+          </div>
         </div>
+      </div>
 
-      {/* Search, Sort, and Filter */}
-      <div className="flex items-center">
-        
-        
-        <div className="min-w-[200px]">
+      {/* Sort and Filter */}
+      <div className="bg-gray-50 rounded-lg p-2">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger>
+            <SelectTrigger className="w-full sm:w-[200px]">
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
             <SelectContent>
@@ -230,20 +248,19 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
               <SelectItem value="age-youngest">Age (Youngest)</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-        <div className="min-w-[170px]">
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline" className="w-full justify-between">
+              <Button variant="outline" className="w-full sm:w-[200px] justify-between">
                 Filter by Package
                 {selectedPackages.length > 0 && (
-                  <Badge variant="secondary" className="ml">
+                  <Badge variant="secondary" className="ml-2">
                     {selectedPackages.length}
                   </Badge>
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-[100px]">
+            <DropdownMenuContent className="w-[200px]">
               {['Core', 'Advanced', 'Premium', 'Others'].map((packageType) => (
                 <DropdownMenuCheckboxItem
                   key={packageType}
@@ -264,26 +281,19 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
         </div>
       </div>
 
+
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <div className="flex items-center justify-between">
-          <TabsList>
-            <TabsTrigger value="managed" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              My Clients ({data?.managedClients.length || 0})
-            </TabsTrigger>
-            <TabsTrigger value="shared" className="flex items-center gap-2">
-              <Share2 className="h-4 w-4" />
-              Clients Shared ({data?.sharedClients.length || 0})
-            </TabsTrigger>
-          </TabsList>
-          
-          {activeTab === 'managed' && (
-            <Button onClick={() => setIsCreateDialogOpen(true)}>
-              <Plus className="h-4 w-4 " />
-            </Button>
-          )}
-        </div>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="managed" className="flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            My Clients ({data?.managedClients.length || 0})
+          </TabsTrigger>
+          <TabsTrigger value="shared" className="flex items-center gap-2">
+            <Share2 className="h-4 w-4" />
+            Clients Shared ({data?.sharedClients.length || 0})
+          </TabsTrigger>
+        </TabsList>
 
         <TabsContent value="managed" className="space-y-4">
           {sortedManagedClients.length === 0 ? (

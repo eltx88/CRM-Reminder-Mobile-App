@@ -66,7 +66,6 @@ function AppContent() {
 
   const handleTabChange = (tab: string) => {
     setActiveView(tab as View);
-    console.log(tab);
   };
 
   const handleClientClick = (clientId: number) => {

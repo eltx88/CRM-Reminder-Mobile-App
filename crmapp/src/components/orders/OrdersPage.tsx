@@ -14,7 +14,10 @@ import CreateOrderDialog from '@/components/orders/CreateOrderDialog';
 import EditOrderDialog from '@/components/orders/EditOrderDialog';
 import OrderDetailsDialog from '@/components/orders/OrderDetailsDialog';
 import { Switch } from '../ui/switch';
-import { Order, FetchedOrder } from '../interface';
+import { Order } from '@/components/interface';
+import { DateRangeFilter, DateRangeType } from '@/components/DateRangeFilter';
+import { PaginationControls } from '@/components/PaginationControls';
+import { PAGINATION_THRESHOLDS, DEFAULT_PAGE_SIZE } from '@/constants/pagination';
 
 // Types
 type SortBy = 'enrollment_date' | 'expiry_date' | 'client_name';
@@ -35,6 +38,17 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   const [showExpiredOnly, setShowExpiredOnly] = useState(false);
   
+  // Date range state
+  const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({ 
+    startDate: null, 
+    endDate: null 
+  });
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(DEFAULT_PAGE_SIZE);
+  const [useServerSidePagination, setUseServerSidePagination] = useState(false);
+  
   // Dialog states
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -54,7 +68,10 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const processedOrders = useMemo(() => {
     if (!ordersData) return [];
     
-    return ordersData.map(order => ({
+    // Handle both paginated and non-paginated responses
+    const orders = 'orders' in ordersData ? ordersData.orders : ordersData;
+    
+    return orders.map(order => ({
       ...order,
       id: order.order_id,
       is_expired: new Date(order.expiry_date) < new Date(),
@@ -67,18 +84,34 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     setAllOrders(processedOrders);
   }, [processedOrders]);
 
+  // Determine if we should use server-side pagination
+  useEffect(() => {
+    if (ordersData && 'totalCount' in ordersData) {
+      setUseServerSidePagination(ordersData.totalCount > PAGINATION_THRESHOLDS.ORDERS);
+    }
+  }, [ordersData]);
+
   // Initial load (guarded for strict mode double call)
   useEffect(() => {
     if (hasFetchedRef.current) {
       return;
     }
     hasFetchedRef.current = true;
-    refetch(user.id);
-  }, [refetch, user.id]);
+    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage);
+  }, [refetch, user.id, dateRange, searchTerm, currentPage, itemsPerPage]);
 
   const handleRefresh = useCallback(() => {
-    refetch(user.id, true);
-  }, [refetch, user.id]);
+    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
+  }, [refetch, user.id, dateRange, searchTerm, currentPage, itemsPerPage]);
+
+  // Handle date range change
+  const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
+    setDateRange({ startDate, endDate });
+    setCurrentPage(1); // Reset to first page
+    // Invalidate cache and fetch with new date range
+    invalidateCache('ordersData');
+    refetch(user.id, startDate || undefined, endDate || undefined, searchTerm, 1, itemsPerPage, true);
+  }, [user.id, refetch, invalidateCache, searchTerm, itemsPerPage]);
 
   // Handle order deletion
   const handleDelete = async (orderId: number) => {
@@ -119,14 +152,47 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
   };
 
+  // Handle search with hybrid approach
+  const handleSearchChange = useCallback((value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1); // Reset to first page
+    
+    if (useServerSidePagination) {
+      // Server-side search
+      invalidateCache('ordersData');
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, value, 1, itemsPerPage, true);
+    }
+    // For client-side, filtering happens in useMemo below
+  }, [useServerSidePagination, user.id, dateRange, refetch, invalidateCache, itemsPerPage]);
+
+  // Handle page change
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+    if (useServerSidePagination) {
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, page, itemsPerPage, true);
+    }
+  }, [useServerSidePagination, user.id, dateRange, searchTerm, refetch, itemsPerPage]);
+
+  // Handle items per page change
+  const handleItemsPerPageChange = useCallback((newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+    if (useServerSidePagination) {
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, 1, newItemsPerPage, true);
+    }
+  }, [useServerSidePagination, user.id, dateRange, searchTerm, refetch]);
+
   const filteredAndSortedOrders = useMemo(() => {
     let orders = [...allOrders];
 
-    if (searchTerm) {
-      orders = orders.filter(order =>
-        order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
+    // Only apply client-side filtering if not using server-side pagination
+    if (!useServerSidePagination) {
+      if (searchTerm) {
+        orders = orders.filter(order =>
+          order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase()))
+        );
+      }
     }
 
     if (showExpiredOnly) {
@@ -157,26 +223,26 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     });
 
     return orders;
-  }, [allOrders, searchTerm, showExpiredOnly, sortBy, sortOrder]);
+  }, [allOrders, searchTerm, showExpiredOnly, sortBy, sortOrder, useServerSidePagination]);
 
 
   const filteredManagedOrders = filteredAndSortedOrders.filter(o => o.can_edit);
   const filteredSharedOrders = filteredAndSortedOrders.filter(o => !o.can_edit);
 
   return (
-    <div className="space-y-6 px-3 mt-3 md:px-4">
+    <div className="space-y-1 px-3 mt-3 md:px-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-          <Package className="h-6 w-6 sm:h-8 sm:w-8" />
-          Orders
-        </h1>
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-2">
+        <div className="flex items-center gap-4">
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Package className="h-6 w-6 sm:h-8 sm:w-8" />
+            Orders
+          </h1>
           <Button
             variant="outline"
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center justify-center gap-2 w-full sm:w-auto"
+            className="flex items-center justify-center gap-2"
             size="sm"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -184,7 +250,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
           </Button>
           <Button 
             onClick={() => setCreateDialogOpen(true)} 
-            className="flex items-center justify-center gap-2 w-full sm:w-auto"
+            className="flex items-center justify-center gap-2"
             size="sm"
           >
             <Plus className="h-4 w-4" />
@@ -196,14 +262,22 @@ export default function OrdersPage({ user }: OrdersPageProps) {
 
       {/* Filters and Search */}
       <div className="p-4 bg-gray-50 rounded-lg">
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+        <div className="grid grid-cols-1 gap-2 md:grid-cols-12">
+          {/* Date Range Filter */}
+          <div className="md:col-span-12">
+            <DateRangeFilter
+              type="orders"
+              onDateRangeChange={handleDateRangeChange}
+            />
+          </div>
+
           <div className="md:col-span-12">
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
                 placeholder="Search clients or order numbers..."
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 w-full"
               />
             </div>
@@ -235,10 +309,12 @@ export default function OrdersPage({ user }: OrdersPageProps) {
                   <SortDesc className="h-5 w-5" />
                 )}
               </Button>
+
             </div>
           </div>
 
-          <div className="md:col-span-12">
+          <div className="md:col-span-10 mt-1">
+            
             <div className="flex items-center gap-2">
               <Switch
                 id="show-expired"
@@ -246,9 +322,12 @@ export default function OrdersPage({ user }: OrdersPageProps) {
                 onCheckedChange={setShowExpiredOnly}
               />
               <label htmlFor="show-expired" className="text-sm">
-                Show expired orders only
+                Show expired orders
               </label>
             </div>
+
+            
+
           </div>
         </div>
       </div>
@@ -258,7 +337,6 @@ export default function OrdersPage({ user }: OrdersPageProps) {
           {contextError}
         </div>
       )}
-
       <Tabs defaultValue="managed" className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="managed">
@@ -325,6 +403,18 @@ export default function OrdersPage({ user }: OrdersPageProps) {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Pagination Controls - only show for server-side pagination */}
+      {useServerSidePagination && ordersData && 'totalCount' in ordersData && (
+        <PaginationControls
+          currentPage={ordersData.currentPage}
+          totalPages={ordersData.totalPages}
+          totalItems={ordersData.totalCount}
+          itemsPerPage={itemsPerPage}
+          onPageChange={handlePageChange}
+          onItemsPerPageChange={handleItemsPerPageChange}
+        />
+      )}
 
       <CreateOrderDialog
         open={createDialogOpen}

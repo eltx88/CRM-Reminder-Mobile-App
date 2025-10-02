@@ -384,34 +384,20 @@ export type Database = {
         Returns: Json
       }
       create_order: {
-        Args:
-          | {
-              admin_uuid: string
-              client_id_param: number
-              collection_date_param?: string
-              enrollment_date_param: string
-              expiry_date_param: string
-              notes_param?: string
-              order_items_param?: Json
-              order_items_text_param?: string
-              order_number_param: string
-              payment_date_param?: string
-              payment_mode_param?: string
-              shipping_location_param?: string
-            }
-          | {
-              admin_uuid: string
-              client_id_param: number
-              collection_date_param?: string
-              enrollment_date_param: string
-              expiry_date_param: string
-              notes_param?: string
-              order_items_param?: Json
-              order_items_text_param?: string
-              payment_date_param?: string
-              payment_mode_param?: string
-              shipping_location_param?: string
-            }
+        Args: {
+          admin_uuid: string
+          client_id_param: number
+          collection_date_param?: string
+          enrollment_date_param: string
+          expiry_date_param: string
+          notes_param?: string
+          order_items_param?: Json
+          order_items_text_param?: string
+          order_number_param: string
+          payment_date_param?: string
+          payment_mode_param?: string
+          shipping_location_param?: string
+        }
         Returns: number
       }
       create_reminder: {
@@ -487,7 +473,7 @@ export type Database = {
         }[]
       }
       get_dashboard_data: {
-        Args: { admin_uuid: string }
+        Args: { admin_uuid: string; end_date?: string; start_date?: string }
         Returns: Json
       }
       get_order_details: {
@@ -514,7 +500,14 @@ export type Database = {
         }[]
       }
       get_orders: {
-        Args: { admin_uuid: string }
+        Args: {
+          admin_uuid: string
+          end_date?: string
+          limit_count?: number
+          offset_count?: number
+          search_term?: string
+          start_date?: string
+        }
         Returns: {
           client_id: number
           client_name: string
@@ -529,6 +522,7 @@ export type Database = {
           payment_date: string
           payment_mode: string
           shipping_location: string
+          total_count: number
         }[]
       }
       get_orders_for_admin: {
@@ -577,10 +571,14 @@ export type Database = {
       get_reminders_for_admin: {
         Args: {
           admin_uuid: string
+          end_date?: string
+          limit_count?: number
+          offset_count?: number
           reminder_type_filter?: string
           search_term?: string
           sort_by?: string
           sort_order?: string
+          start_date?: string
         }
         Returns: {
           client_id: number
@@ -591,6 +589,7 @@ export type Database = {
           order_id: number
           reminder_type: string
           status: string
+          total_count: number
           trigger_date: string
         }[]
       }
