@@ -99,6 +99,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       isLoading: { remindersData: loading }, 
       errors: { remindersData: contextError },
       fetchRemindersData: refetch,
+      fetchDashboardData,
       invalidateCache
     } = useData();
 
@@ -188,8 +189,18 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       
       const result = data as { success: boolean; message: string };
       if (result.success) {
-        // Invalidate cache to refresh data
+        // Invalidate cache and force refresh for both reminders and dashboard
         invalidateCache('remindersData');
+        invalidateCache('dashboardData');
+        
+        // Refresh reminders data
+        refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+        
+        // Refresh dashboard data to update alerts counter
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        fetchDashboardData(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0], true);
       } else {
         setLocalError(result.message);
       }
@@ -211,8 +222,18 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       
       const result = data as { success: boolean; message: string };
       if (result.success) {
-        // Invalidate cache to refresh data
+        // Invalidate cache and force refresh for both reminders and dashboard
         invalidateCache('remindersData');
+        invalidateCache('dashboardData');
+        
+        // Refresh reminders data
+        refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+        
+        // Refresh dashboard data to update alerts counter
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        fetchDashboardData(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0], true);
       } else {
         setLocalError(result.message);
       }
@@ -475,7 +496,13 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
         onOpenChange={handleCreateDialogChange}
         onSuccess={() => {
           invalidateCache('remindersData');
+          invalidateCache('dashboardData');
           refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+          // Refresh dashboard data to update alerts counter
+          const today = new Date();
+          const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+          const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          fetchDashboardData(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0], true);
         }}
         userId={user.id}
         preselectedClient={createSeed}
@@ -486,7 +513,13 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
         onOpenChange={setEditDialogOpen}
         onSuccess={() => {
           invalidateCache('remindersData');
+          invalidateCache('dashboardData');
           refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+          // Refresh dashboard data to update alerts counter
+          const today = new Date();
+          const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+          const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          fetchDashboardData(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0], true);
         }}
         userId={user.id}
         reminder={selectedReminder}

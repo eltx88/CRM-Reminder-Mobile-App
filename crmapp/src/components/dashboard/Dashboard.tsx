@@ -89,8 +89,13 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
       };
     }
 
-    const followUp = data.reminderTypeDistribution.find(item => item.name === 'Follow Up')?.value ?? 0;
-    const expiry = data.reminderTypeDistribution.find(item => item.name === 'Expiry')?.value ?? 0;
+    // Debug: Log the actual data structure
+    console.log('reminderTypeDistribution data:', data.reminderTypeDistribution);
+
+    const followUp = data.reminderTypeDistribution.find(item => item.name === 'FOLLOW_UP')?.value ?? 0;
+    const expiry = data.reminderTypeDistribution.find(item => item.name === 'EXPIRY')?.value ?? 0;
+
+    console.log('Parsed counts - Follow Up:', followUp, 'Expiry:', expiry);
 
     return {
       followUp,

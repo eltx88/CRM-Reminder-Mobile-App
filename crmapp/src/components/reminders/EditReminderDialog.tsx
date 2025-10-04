@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Edit, AlertCircle, Loader2, User, Phone, Mail } from 'lucide-react';
+import { Edit, AlertCircle, Loader2, User, Phone, Mail, X } from 'lucide-react';
 
 interface Reminder {
   id: number;
@@ -146,6 +146,11 @@ export default function EditReminderDialog({
     }
   };
 
+  // Clear message function
+  const clearMessage = () => {
+    setFormData(prev => ({ ...prev, message: '' }));
+  };
+
   // Get minimum date (today for new reminders, any date for existing)
   const getMinDate = (): string => {
     const today = new Date();
@@ -260,7 +265,21 @@ export default function EditReminderDialog({
 
           {/* Message */}
           <div className="space-y-2">
-            <Label htmlFor="message">Reminder Message *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="message">Reminder Message *</Label>
+              {formData.message && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearMessage}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
             <Textarea
               id="message"
               value={formData.message}

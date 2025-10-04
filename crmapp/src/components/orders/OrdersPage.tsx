@@ -131,8 +131,9 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       if (error) throw error;
       
       if (data === true) {
-        // Invalidate cache to refresh data
+        // Invalidate cache and force refresh
         invalidateCache('ordersData');
+        refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
       } else {
         setLocalError('Failed to delete order');
       }

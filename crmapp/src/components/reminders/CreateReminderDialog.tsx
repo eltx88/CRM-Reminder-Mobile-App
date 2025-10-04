@@ -18,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Calendar, AlertCircle, Loader2, Check } from 'lucide-react';
+import { Calendar, AlertCircle, Loader2, Check, X } from 'lucide-react';
 
 interface Client {
   id: number;
@@ -58,6 +58,7 @@ export default function CreateReminderDialog({
     trigger_date: '',
     message: '',
   });
+  const [isMessageManuallyEdited, setIsMessageManuallyEdited] = useState(false);
 
   // Fetch clients when dialog opens
   useEffect(() => {
@@ -112,6 +113,7 @@ export default function CreateReminderDialog({
     setSelectedClient(null);
     setShowClientDropdown(false);
     setError(null);
+    setIsMessageManuallyEdited(false);
   };
 
   // Get tomorrow's date as default
@@ -173,10 +175,21 @@ export default function CreateReminderDialog({
       [field]: value
     }));
     
+    // Track if message is manually edited
+    if (field === 'message') {
+      setIsMessageManuallyEdited(true);
+    }
+    
     // Clear error when user starts typing
     if (error) {
       setError(null);
     }
+  };
+
+  // Clear message function
+  const clearMessage = () => {
+    setFormData(prev => ({ ...prev, message: '' }));
+    setIsMessageManuallyEdited(true);
   };
 
   // Generate default message based on type and selected client
@@ -201,16 +214,13 @@ export default function CreateReminderDialog({
     setShowClientDropdown(false);
   };
 
-  // Update message when client or type changes
+  // Update message when client or type changes (only if not manually edited)
   useEffect(() => {
-    if (selectedClient && formData.reminder_type) {
+    if (selectedClient && formData.reminder_type && !isMessageManuallyEdited) {
       const defaultMessage = generateDefaultMessage(formData.reminder_type, selectedClient.name);
-      // Only auto-populate if message is empty or contains old auto-generated text
-      if (!formData.message || formData.message.includes('Follow up with') || formData.message.includes('expiring soon')) {
-        setFormData(prev => ({ ...prev, message: defaultMessage }));
-      }
+      setFormData(prev => ({ ...prev, message: defaultMessage }));
     }
-  }, [selectedClient, formData.reminder_type, formData.message]);
+  }, [selectedClient, formData.reminder_type, isMessageManuallyEdited]);
 
   // Get minimum date (today)
   const getMinDate = (): string => {
@@ -351,7 +361,21 @@ export default function CreateReminderDialog({
 
           {/* Message */}
           <div className="space-y-2">
-            <Label htmlFor="message">Reminder Message *</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="message">Reminder Message *</Label>
+              {formData.message && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={clearMessage}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 px-2"
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+              )}
+            </div>
             <Textarea
               id="message"
               value={formData.message}

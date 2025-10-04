@@ -4,6 +4,7 @@ import React from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
+import { useData } from '@/contexts/DataContext';
 import { 
   LayoutDashboard, 
   Users, 
@@ -30,16 +31,26 @@ export default function AppLayout({
   activeTab, 
   onTabChange 
 }: AppLayoutProps) {
+  const { dashboardData } = useData();
+  
   const handleLogout = async () => {
     await supabase.auth.signOut();
     onLogout();
   };
 
-  const navigationItems = [
+  // Get reminders count for today
+  const remindersCount = dashboardData?.stats?.pendingReminders || 0;
+
+  const navigationItems: Array<{
+    id: string;
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    badge?: number;
+  }> = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'clients', label: 'Clients', icon: Users },
     { id: 'orders', label: 'Orders', icon:Package},
-    { id: 'reminders', label: 'Alerts', icon: Bell },
+    { id: 'reminders', label: 'Alerts', icon: Bell, badge: remindersCount },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
   ];
 
@@ -80,19 +91,27 @@ export default function AppLayout({
         <div className="flex items-center justify-around">
           {navigationItems.map((item) => {
             const Icon = item.icon;
-            const isActive = activeTab === item.id;       
+            const isActive = activeTab === item.id;
+            const badge = 'badge' in item ? item.badge : null;
             
             return (
               <button
                 key={item.id}
                 onClick={() => onTabChange(item.id)}
-                className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-colors ${
+                className={`flex flex-col items-center justify-center w-16 h-16 rounded-lg transition-colors relative ${
                   isActive
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                <Icon className="h-5 w-5 mb-1" />
+                <div className="relative">
+                  <Icon className="h-5 w-5 mb-1" />
+                  {badge !== null && badge > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
+                      {badge}
+                    </span>
+                  )}
+                </div>
                 <span className="text-xs">{item.label}</span>
               </button>
             );
