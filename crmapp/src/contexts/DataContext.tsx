@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { supabase } from '@/supabase/client';
 import { DashboardData, ClientsData, FetchedOrder, Reminder } from '@/components/interface';
 

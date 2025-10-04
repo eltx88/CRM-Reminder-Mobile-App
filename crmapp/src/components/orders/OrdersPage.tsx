@@ -38,11 +38,18 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   const [showExpiredOnly, setShowExpiredOnly] = useState(false);
   
-  // Date range state
-  const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({ 
-    startDate: null, 
-    endDate: null 
-  });
+  // Date range state - initialize with current month
+  const getCurrentMonthRange = () => {
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    return {
+      startDate: startOfMonth.toISOString().split('T')[0],
+      endDate: endOfMonth.toISOString().split('T')[0]
+    };
+  };
+  
+  const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>(getCurrentMonthRange());
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -98,20 +105,20 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     }
     hasFetchedRef.current = true;
     refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage);
-  }, [refetch, user.id, dateRange, searchTerm, currentPage, itemsPerPage]);
+  }, [refetch, user.id, searchTerm, currentPage, itemsPerPage]);
 
   const handleRefresh = useCallback(() => {
     refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
   }, [refetch, user.id, dateRange, searchTerm, currentPage, itemsPerPage]);
 
   // Handle date range change
-  const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
+  const handleDateRangeChange = (startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
+    console.log('handleDateRangeChange called with:', { startDate, endDate, rangeType });
     setDateRange({ startDate, endDate });
     setCurrentPage(1); // Reset to first page
-    // Invalidate cache and fetch with new date range
-    invalidateCache('ordersData');
+    // Force refresh with new date range
     refetch(user.id, startDate || undefined, endDate || undefined, searchTerm, 1, itemsPerPage, true);
-  }, [user.id, refetch, invalidateCache, searchTerm, itemsPerPage]);
+  };
 
   // Handle order deletion
   const handleDelete = async (orderId: number) => {
@@ -163,7 +170,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, value, 1, itemsPerPage, true);
     }
     // For client-side, filtering happens in useMemo below
-  }, [useServerSidePagination, user.id, dateRange, refetch, invalidateCache, itemsPerPage]);
+  }, [useServerSidePagination, user.id, refetch, invalidateCache, itemsPerPage]);
 
   // Handle page change
   const handlePageChange = useCallback((page: number) => {
@@ -419,14 +426,20 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       <CreateOrderDialog
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
-        onSuccess={() => invalidateCache('ordersData')}
+        onSuccess={() => {
+          invalidateCache('ordersData');
+          refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
+        }}
         userId={user.id}
       />
 
       <EditOrderDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={() => invalidateCache('ordersData')}
+        onSuccess={() => {
+          invalidateCache('ordersData');
+          refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
+        }}
         userId={user.id}
         order={selectedOrder}
       />

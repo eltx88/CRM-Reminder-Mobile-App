@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -36,6 +36,25 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
     errors: { dashboardData: isError },
     fetchDashboardData: refetch 
   } = useData();
+
+  // Initial load guard to prevent double calls
+  const hasFetchedRef = useRef(false);
+
+  // Initial load
+  useEffect(() => {
+    console.log('Dashboard useEffect called, hasFetchedRef.current:', hasFetchedRef.current);
+    if (hasFetchedRef.current) {
+      console.log('Dashboard: returning early due to hasFetchedRef');
+      return;
+    }
+    hasFetchedRef.current = true;
+    console.log('Dashboard: calling refetch');
+    // Set default date ranges for dashboard
+    const today = new Date();
+    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    refetch(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0]);
+  }, [refetch, user.id]);
 
   const filteredClients = data?.recentClients?.filter(client =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -145,7 +164,7 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         <StatsCard
-          title="Active Orders"
+          title="Orders This Month"
           value={data?.stats.activeOrders ?? 0}
           icon={ShoppingBag}
         />
@@ -153,7 +172,7 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
           <DropdownMenuTrigger asChild>
             <div>
               <StatsCard
-                title="Pending Reminders"
+                title="Reminders Today"
                 value={data?.stats.pendingReminders ?? 0}
                 icon={Bell}
                 onClick={() => setRemindersDropdownOpen(!remindersDropdownOpen)}

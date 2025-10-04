@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -79,8 +79,20 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     clientsData: data, 
     isLoading: { clientsData: isLoading }, 
     errors: { clientsData: isError },
-    fetchClientsData: refetch 
+    fetchClientsData: refetch
   } = useData();
+
+  // Initial load guard to prevent double calls
+  const hasFetchedRef = useRef(false);
+
+  // Initial load
+  useEffect(() => {
+    if (hasFetchedRef.current) {
+      return;
+    }
+    hasFetchedRef.current = true;
+    refetch(user.id);
+  }, [refetch, user.id]);
 
   const sortClients = (clients: any[]) => {
     return [...clients].sort((a, b) => {

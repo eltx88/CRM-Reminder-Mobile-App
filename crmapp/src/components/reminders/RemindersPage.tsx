@@ -62,11 +62,16 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     const [sortBy, setSortBy] = useState<ReminderSortBy>('trigger_date');
     const [sortOrder, setSortOrder] = useState<SortOrder>('ASC');
     
-    // Date range state
-    const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>({ 
-      startDate: null, 
-      endDate: null 
-    });
+    // Date range state - initialize with today
+    const getTodayRange = () => {
+      const today = new Date();
+      return {
+        startDate: today.toISOString().split('T')[0],
+        endDate: today.toISOString().split('T')[0]
+      };
+    };
+    
+    const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>(getTodayRange());
     const [currentDateRangeType, setCurrentDateRangeType] = useState<DateRangeType>('today');
     
     // Pagination states
@@ -104,7 +109,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       // Handle both paginated and non-paginated responses
       const reminders = 'reminders' in remindersData ? remindersData.reminders : remindersData;
       
-      return reminders.map((r) => ({
+      return reminders.map((r : Reminder) => ({
         id: r.id,
         client_id: r.client_id,
         client_name: r.client_name,
@@ -139,10 +144,10 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     if (useServerSidePagination) {
       // Server-side search
       invalidateCache('remindersData');
-      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, value, reminderTypeFilter, sortBy, sortOrder, 1, itemsPerPage, true);
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, value, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, 1, itemsPerPage, true);
     }
     // For client-side, filtering happens in useMemo below
-  }, [useServerSidePagination, user.id, dateRange, reminderTypeFilter, sortBy, sortOrder, refetch, invalidateCache, itemsPerPage]);
+  }, [useServerSidePagination, user.id, reminderTypeFilter, sortBy, sortOrder, refetch, invalidateCache, itemsPerPage]);
 
 
   // Initial load (guard for strict mode double call)
@@ -151,24 +156,24 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       return;
     }
     hasFetchedRef.current = true;
-    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage);
-  }, [refetch, user.id, searchTerm, dateRange, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
+    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage);
+  }, [refetch, user.id, searchTerm, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
 
   const handleRefresh = useCallback(() => {
-    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+    refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
   }, [refetch, user.id, searchTerm, dateRange, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
 
   // Handle date range change
-  const handleDateRangeChange = useCallback((startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
+  const handleDateRangeChange = (startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
+    console.log('handleDateRangeChange called with:', { startDate, endDate, rangeType });
     setDateRange({ startDate, endDate });
     if (rangeType) {
       setCurrentDateRangeType(rangeType);
     }
     setCurrentPage(1); // Reset to first page
-    // Invalidate cache and fetch with new date range
-    invalidateCache('remindersData');
-    refetch(user.id, startDate || undefined, endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, 1, itemsPerPage, true);
-  }, [user.id, searchTerm, reminderTypeFilter, sortBy, sortOrder, refetch, invalidateCache, itemsPerPage]);
+    // Force refresh with new date range
+    refetch(user.id, startDate || undefined, endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, 1, itemsPerPage, true);
+  };
 
   // Handle reminder status change
   const handleStatusChange = async (reminderId: number, status: 'PENDING' | 'COMPLETED' | 'DISMISSED') => {
@@ -227,7 +232,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
   const handlePageChange = useCallback((page: number) => {
     setCurrentPage(page);
     if (useServerSidePagination) {
-      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, page, itemsPerPage, true);
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, page, itemsPerPage, true);
     }
   }, [useServerSidePagination, user.id, dateRange, searchTerm, reminderTypeFilter, sortBy, sortOrder, refetch, itemsPerPage]);
 
@@ -236,7 +241,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset to first page
     if (useServerSidePagination) {
-      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, sortOrder, 1, newItemsPerPage, true);
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, 1, newItemsPerPage, true);
     }
   }, [useServerSidePagination, user.id, dateRange, searchTerm, reminderTypeFilter, sortBy, sortOrder, refetch]);
 
@@ -245,7 +250,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     setSortOrder(sortOrder === 'ASC' ? 'DESC' : 'ASC');
     if (useServerSidePagination) {
       const newSortOrder = sortOrder === 'ASC' ? 'DESC' : 'ASC';
-      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter, sortBy, newSortOrder, currentPage, itemsPerPage, true);
+      refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, newSortOrder, currentPage, itemsPerPage, true);
     }
   };
 
@@ -310,7 +315,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     <div className="space-y-1 px-2 mt-3 md:px-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Bell className="h-6 w-6 sm:h-8 sm:w-8" />
             Reminders
@@ -319,7 +324,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
             variant="outline"
             onClick={handleRefresh}
             disabled={loading}
-            className="flex items-center justify-center gap-2"
+            className="flex items-center justify-center gap-1"
             size="sm"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -327,7 +332,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
           </Button>
           <Button 
             onClick={() => handleCreateDialogChange(true)}
-            className="flex items-center justify-center gap-2 justify-end" 
+            className="flex items-center justify-center gap-1 justify-end" 
             size="sm"
           >
             <Plus className="h-4 w-4" />
@@ -384,7 +389,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
             </div>
             </div>
 
-            {/* Row 3: Sort button (when not today), Switch, and Create button */}
+            {/* Row 3: Sort button (when not today), Switch */}
             <div className="md:col-span-12 mt-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -468,7 +473,10 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
         <CreateReminderDialog
         open={isCreateDialogOpen}
         onOpenChange={handleCreateDialogChange}
-        onSuccess={() => invalidateCache('remindersData')}
+        onSuccess={() => {
+          invalidateCache('remindersData');
+          refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+        }}
         userId={user.id}
         preselectedClient={createSeed}
       />
@@ -476,7 +484,10 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       <EditReminderDialog
         open={editDialogOpen}
         onOpenChange={setEditDialogOpen}
-        onSuccess={() => invalidateCache('remindersData')}
+        onSuccess={() => {
+          invalidateCache('remindersData');
+          refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);
+        }}
         userId={user.id}
         reminder={selectedReminder}
       />

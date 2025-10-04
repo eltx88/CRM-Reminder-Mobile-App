@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,20 +45,22 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
 
   const getDateRange = (range: DateRangeType) => {
     const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // Get today's date in YYYY-MM-DD format without timezone issues
+    const today = now.toISOString().split('T')[0];
+    console.log('Today:', today);
     
     switch (range) {
       case 'today':
         return {
-          startDate: today.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0]
+          startDate: today,
+          endDate: today
         };
       
       case 'thisWeek':
-        const startOfWeek = new Date(today);
-        startOfWeek.setDate(today.getDate() - today.getDay());
-        const endOfWeek = new Date(startOfWeek);
-        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay());
+        const endOfWeek = new Date(now);
+        endOfWeek.setDate(now.getDate() - now.getDay() + 6);
         return {
           startDate: startOfWeek.toISOString().split('T')[0],
           endDate: endOfWeek.toISOString().split('T')[0]
@@ -76,21 +78,21 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
         const startOfYear = new Date(now.getFullYear(), 0, 1);
         return {
           startDate: startOfYear.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0]
+          endDate: today
         };
       
       case 'last3Months':
         const threeMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 3, 1);
         return {
           startDate: threeMonthsAgo.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0]
+          endDate: today
         };
       
       case 'last6Months':
         const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
         return {
           startDate: sixMonthsAgo.toISOString().split('T')[0],
-          endDate: today.toISOString().split('T')[0]
+          endDate: today
         };
       
       case 'custom':
@@ -109,29 +111,27 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
     
     if (range === 'custom') {
       setIsCustomOpen(true);
-      // Don't trigger date change until custom dates are set
       return;
     }
     
     // Close custom section when switching away from custom
     setIsCustomOpen(false);
     const { startDate, endDate } = getDateRange(range);
-    onDateRangeChange(startDate, endDate, range);
+    onDateRangeChange(startDate, endDate);
   };
 
   const handleCustomDateApply = () => {
     if (customStartDate && customEndDate) {
-      onDateRangeChange(customStartDate, customEndDate, 'custom');
+      onDateRangeChange(customStartDate, customEndDate);
     }
   };
 
   const handleCustomDateClear = () => {
     setCustomStartDate('');
     setCustomEndDate('');
-    const defaultRange = type === 'orders' ? 'thisMonth' : 'today';
-    setSelectedRange(defaultRange);
-    const { startDate, endDate } = getDateRange(defaultRange);
-    onDateRangeChange(startDate, endDate, defaultRange);
+    setSelectedRange(type === 'orders' ? 'thisMonth' : 'today');
+    const { startDate, endDate } = getDateRange(type === 'orders' ? 'thisMonth' : 'today');
+    onDateRangeChange(startDate, endDate);
   };
 
   return (
@@ -156,59 +156,60 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
         </SelectContent>
       </Select>
 
-      {selectedRange === 'custom' && (
-        <Collapsible open={isCustomOpen} onOpenChange={setIsCustomOpen}>
-          <CollapsibleTrigger asChild>
+      <Collapsible open={isCustomOpen} onOpenChange={setIsCustomOpen}>
+        <CollapsibleTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full justify-between"
+            disabled={selectedRange !== 'custom'}
+          >
+            <span>Custom Date Range</span>
+            {isCustomOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+          </Button>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-3 pt-3">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="start-date">Start Date</Label>
+              <Input
+                id="start-date"
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                disabled={selectedRange !== 'custom'}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="end-date">End Date</Label>
+              <Input
+                id="end-date"
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                disabled={selectedRange !== 'custom'}
+              />
+            </div>
+          </div>
+          <div className="flex space-x-2">
             <Button
-              variant="outline"
-              className="w-full justify-between"
+              onClick={handleCustomDateApply}
+              disabled={!customStartDate || !customEndDate}
+              size="sm"
+              className="flex-1"
             >
-              <span>Custom Date Range</span>
-              {isCustomOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              Apply
             </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="space-y-3 pt-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2">
-                <Label htmlFor="start-date">Start Date</Label>
-                <Input
-                  id="start-date"
-                  type="date"
-                  value={customStartDate}
-                  onChange={(e) => setCustomStartDate(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="end-date">End Date</Label>
-                <Input
-                  id="end-date"
-                  type="date"
-                  value={customEndDate}
-                  onChange={(e) => setCustomEndDate(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="flex space-x-2">
-              <Button
-                onClick={handleCustomDateApply}
-                disabled={!customStartDate || !customEndDate}
-                size="sm"
-                className="flex-1"
-              >
-                Apply
-              </Button>
-              <Button
-                onClick={handleCustomDateClear}
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                Clear
-              </Button>
-            </div>
-          </CollapsibleContent>
-        </Collapsible>
-      )}
+            <Button
+              onClick={handleCustomDateClear}
+              variant="outline"
+              size="sm"
+              className="flex-1"
+            >
+              Clear
+            </Button>
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 }
