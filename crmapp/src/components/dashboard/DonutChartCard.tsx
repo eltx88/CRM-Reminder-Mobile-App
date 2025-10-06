@@ -28,7 +28,7 @@ export function DonutChartCard({ title, data, description, colorScheme = 'defaul
   // Package color mapping
   const packageColors = {
     'Core': '#60A5FA',      // Light blue
-    'Advanced': '#C0C0C0',  // Silver
+    'Advanced': '#45474B',  // Silver
     'Premium': '#FFD700',   // Gold
     'Others': '#1E40AF'     // Dark blue
   };
@@ -99,36 +99,56 @@ export function DonutChartCard({ title, data, description, colorScheme = 'defaul
   }, [chartData]);
 
   return (
-    <Card className="flex flex-col">
+    <Card className="flex flex-col relative">
       <CardHeader className="items-center pb-0">
         <CardTitle>{title}</CardTitle>
         {description && <CardDescription>{description}</CardDescription>}
       </CardHeader>
       <CardContent className="flex-1 pb-0">
         {totalValue > 0 ? (
-          <ChartContainer
-            config={chartConfig}
-            className="mx-auto aspect-square max-h-[250px] [&_.recharts-text]:fill-background"
-          >
-            <PieChart>
-              <ChartTooltip
-                content={<ChartTooltipContent nameKey="value" hideLabel />}
-              />
-              <Pie data={chartData} dataKey="value" nameKey="name">
-                <LabelList
-                  dataKey="name"
-                  className="fill-background"
-                  stroke="none"
-                  fontSize={12}
-                  formatter={(value: string) => {
-                    // Show package name and count
-                    const item = chartData.find(d => d.name === value);
-                    return item ? `${value}` : value;
-                  }}
+          <div className="relative">
+            <ChartContainer
+              config={chartConfig}
+              className="mx-auto aspect-square max-h-[250px] [&_.recharts-text]:fill-background"
+            >
+              <PieChart>
+                <ChartTooltip
+                  content={<ChartTooltipContent nameKey="value" hideLabel />}
                 />
-              </Pie>
-            </PieChart>
-          </ChartContainer>
+                <Pie data={chartData} dataKey="value" nameKey="name">
+                  <LabelList
+                    dataKey="name"
+                    className="fill-background"
+                    stroke="none"
+                    fontSize={12}
+                    formatter={(value: string) => {
+                      // Show package name and count
+                      const item = chartData.find(d => d.name === value);
+                      return item ? `${value}` : value;
+                    }}
+                  />
+                </Pie>
+              </PieChart>
+            </ChartContainer>
+            
+            {/* Legend */}
+            {colorScheme === 'packages' && chartData.length > 0 && (
+              <div className="absolute top-2 right-2 bg-background/95 backdrop-blur-sm rounded-lg p-2 shadow-sm border">
+                <div className="text-xs font-medium text-muted-foreground mb-1"></div>
+                <div className="space-y-1">
+                  {chartData.map((item, index) => (
+                    <div key={item.name} className="flex items-center gap-2 text-xs">
+                      <div 
+                        className="w-3 h-3 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: getItemColor(item.name, index) }}
+                      />
+                      <span className="truncate max-w-[80px]">{item.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         ) : (
           <div className="flex items-center justify-center h-[250px] text-muted-foreground">
             <div className="text-center">

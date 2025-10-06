@@ -178,13 +178,6 @@ export interface Client {
     package_points: number;
   }
   
-  export interface ClientCardProps {
-    client: Client;
-    onClick: () => void;
-    showManaged: boolean;
-    onCreateReminder: (clientId: number, clientName: string) => void;
-    onCreateOrder: (clientId: number, clientName: string) => void;
-  }
   
   // Chart Data Interface
   export interface ChartDataItem {

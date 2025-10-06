@@ -70,6 +70,9 @@ interface DataContextType {
   
   // Refresh all data
   refreshAllData: (userId: string) => Promise<void>;
+  
+  // Delete client
+  deleteClient: (userId: string, clientId: number) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -335,6 +338,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
     ]);
   }, [fetchDashboardData, fetchClientsData, fetchOrdersData, fetchRemindersData]);
 
+  const deleteClient = useCallback(async (userId: string, clientId: number) => {
+    try {
+      const { data, error } = await supabase.rpc('delete_client', {
+        admin_uuid: userId,
+        client_id_param: clientId
+      });
+
+      if (error) {
+        console.error('Error deleting client:', error);
+        throw new Error('Could not delete client');
+      }
+
+      // Invalidate clients cache to force refresh
+      invalidateCache('clientsData');
+    } catch (error: any) {
+      console.error('Error deleting client:', error);
+      throw error;
+    }
+  }, [invalidateCache]);
+
   const value: DataContextType = {
     dashboardData: cache.dashboardData,
     clientsData: cache.clientsData,
@@ -348,6 +371,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
     fetchRemindersData,
     invalidateCache,
     refreshAllData,
+    deleteClient,
   };
 
   return (

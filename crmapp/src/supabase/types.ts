@@ -411,6 +411,10 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_client: {
+        Args: { admin_uuid: string; client_id_param: number }
+        Returns: Json
+      }
       delete_order: {
         Args: { admin_uuid: string; order_id_param: number }
         Returns: boolean
@@ -614,34 +618,20 @@ export type Database = {
         Returns: Json
       }
       update_order: {
-        Args:
-          | {
-              admin_uuid: string
-              collection_date_param?: string
-              enrollment_date_param: string
-              expiry_date_param: string
-              notes_param?: string
-              order_id_param: number
-              order_items_param?: Json
-              order_items_text_param?: string
-              order_number_param: string
-              payment_date_param?: string
-              payment_mode_param?: string
-              shipping_location_param?: string
-            }
-          | {
-              admin_uuid: string
-              collection_date_param?: string
-              enrollment_date_param: string
-              expiry_date_param: string
-              notes_param?: string
-              order_id_param: number
-              order_items_param?: Json
-              order_items_text_param?: string
-              payment_date_param?: string
-              payment_mode_param?: string
-              shipping_location_param?: string
-            }
+        Args: {
+          admin_uuid: string
+          collection_date_param?: string
+          enrollment_date_param: string
+          expiry_date_param: string
+          notes_param?: string
+          order_id_param: number
+          order_items_param?: Json
+          order_items_text_param?: string
+          order_number_param?: string
+          payment_date_param?: string
+          payment_mode_param?: string
+          shipping_location_param?: string
+        }
         Returns: boolean
       }
       update_reminder: {
