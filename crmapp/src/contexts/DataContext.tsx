@@ -220,7 +220,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         shipping_location: row.shipping_location,
         notes: row.notes,
         order_items: row.order_items,
-        is_shared: row.is_shared
+        is_shared: row.is_shared,
+        is_partially_collected: row.is_partially_collected || false,
+        collection_status: row.collection_status || 'not_started'
       })) || [];
 
       const paginatedResponse: PaginatedOrdersResponse = {

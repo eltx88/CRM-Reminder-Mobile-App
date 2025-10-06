@@ -187,18 +187,21 @@ export type Database = {
           order_id: number
           product_id: number
           quantity: number
+          quantity_collected: number
         }
         Insert: {
           id?: number
           order_id: number
           product_id: number
           quantity: number
+          quantity_collected?: number
         }
         Update: {
           id?: number
           order_id?: number
           product_id?: number
           quantity?: number
+          quantity_collected?: number
         }
         Relationships: [
           {
@@ -221,9 +224,11 @@ export type Database = {
         Row: {
           client_id: number
           collection_date: string | null
+          collection_status: string
           enrollment_date: string
           expiry_date: string
           id: number
+          is_partially_collected: boolean
           notes: string | null
           order_items: string | null
           order_number: string | null
@@ -234,9 +239,11 @@ export type Database = {
         Insert: {
           client_id: number
           collection_date?: string | null
+          collection_status?: string
           enrollment_date?: string
           expiry_date: string
           id?: number
+          is_partially_collected?: boolean
           notes?: string | null
           order_items?: string | null
           order_number?: string | null
@@ -247,9 +254,11 @@ export type Database = {
         Update: {
           client_id?: number
           collection_date?: string | null
+          collection_status?: string
           enrollment_date?: string
           expiry_date?: string
           id?: number
+          is_partially_collected?: boolean
           notes?: string | null
           order_items?: string | null
           order_number?: string | null
@@ -431,8 +440,10 @@ export type Database = {
         Args: { admin_uuid: string; client_id_param: number }
         Returns: {
           collection_date: string
+          collection_status: string
           enrollment_date: string
           expiry_date: string
+          is_partially_collected: boolean
           notes: string
           order_id: number
           order_items: string
@@ -440,6 +451,7 @@ export type Database = {
           payment_date: string
           payment_mode: string
           shipping_location: string
+          total_collected: number
           total_items: number
         }[]
       }
@@ -486,8 +498,10 @@ export type Database = {
           client_id: number
           client_name: string
           collection_date: string
+          collection_status: string
           enrollment_date: string
           expiry_date: string
+          is_partially_collected: boolean
           is_shared: boolean
           item_id: number
           order_id: number
@@ -500,6 +514,7 @@ export type Database = {
           product_id: number
           product_name: string
           quantity: number
+          quantity_collected: number
           shipping_location: string
         }[]
       }
@@ -516,8 +531,10 @@ export type Database = {
           client_id: number
           client_name: string
           collection_date: string
+          collection_status: string
           enrollment_date: string
           expiry_date: string
+          is_partially_collected: boolean
           is_shared: boolean
           notes: string
           order_id: number
@@ -623,6 +640,8 @@ export type Database = {
           collection_date_param?: string
           enrollment_date_param: string
           expiry_date_param: string
+          is_partially_collected_param?: boolean
+          item_collections_param?: Json
           notes_param?: string
           order_id_param: number
           order_items_param?: Json

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Loader2, Plus, Minus, Package, Coins, Check, ChevronDown, ChevronRight, Trash2, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Database } from '@/supabase/types';
 import * as z from 'zod';
 import { OrderItem } from '../interface';
@@ -24,7 +25,9 @@ const orderSchema = z.object({
     order_items: z.array(z.object({
       product_id: z.number().min(1, 'A product must be selected for all items.'),
       quantity: z.number().min(1, 'Quantity must be at least 1.'),
+      quantity_collected: z.number().min(0, 'Quantity collected cannot be negative.').optional(),
     })).min(1, 'At least one order item is required.'),
+    is_partially_collected: z.boolean().optional(),
 });
 
 type orderFormData = z.infer<typeof orderSchema>;
@@ -46,7 +49,8 @@ const areOrderFormsEqual = (a: orderFormData, b: orderFormData): boolean => {
     a.payment_date !== b.payment_date ||
     a.shipping_location !== b.shipping_location ||
     a.notes !== b.notes ||
-    a.order_items.length !== b.order_items.length
+    a.order_items.length !== b.order_items.length ||
+    a.is_partially_collected !== b.is_partially_collected
   ) {
     return false;
   }
@@ -54,7 +58,9 @@ const areOrderFormsEqual = (a: orderFormData, b: orderFormData): boolean => {
   for (let i = 0; i < a.order_items.length; i++) {
     const itemA = a.order_items[i];
     const itemB = b.order_items[i];
-    if (itemA.product_id !== itemB.product_id || itemA.quantity !== itemB.quantity) {
+    if (itemA.product_id !== itemB.product_id || 
+        itemA.quantity !== itemB.quantity ||
+        itemA.quantity_collected !== itemB.quantity_collected) {
       return false;
     }
   }
@@ -109,7 +115,8 @@ export default function EditOrderDialog({
     payment_date: '',
     shipping_location: '',
     notes: '',
-    order_items: [{ product_id: 0, quantity: 1 }],
+    order_items: [{ product_id: 0, quantity: 1, quantity_collected: 0 }],
+    is_partially_collected: false,
   });
 
   // Load data and populate form when dialog opens
@@ -219,8 +226,10 @@ export default function EditOrderDialog({
       notes: orderDetails.order_notes || '',
       order_items: data.map(item => ({
         product_id: item.product_id,
-        quantity: item.quantity
-      }))
+        quantity: item.quantity,
+        quantity_collected: item.quantity_collected || 0
+      })),
+      is_partially_collected: order.is_partially_collected || false,
     };
 
     const clonedForm = cloneOrderFormData(nextFormData);
@@ -269,7 +278,7 @@ export default function EditOrderDialog({
   const addOrderItem = () => {
     setFormData(prev => ({
       ...prev,
-      order_items: [...prev.order_items, { product_id: 0, quantity: 1 }],
+      order_items: [...prev.order_items, { product_id: 0, quantity: 1, quantity_collected: 0 }],
     }));
   };
 
@@ -310,7 +319,7 @@ export default function EditOrderDialog({
   const clearAllItems = () => {
     setFormData(prev => ({
       ...prev,
-      order_items: [{ product_id: 0, quantity: 1 }]
+      order_items: [{ product_id: 0, quantity: 1, quantity_collected: 0 }]
     }));
   };
 
@@ -403,8 +412,18 @@ export default function EditOrderDialog({
         payment_date_param: validatedData.payment_date,
         shipping_location_param: validatedData.shipping_location,
         notes_param: validatedData.notes,
-        order_items_param: validatedData.order_items,
-        order_items_text_param: orderItemsText ?? undefined
+        order_items_param: validatedData.order_items.map(item => ({
+          product_id: item.product_id,
+          quantity: item.quantity
+        })),
+        order_items_text_param: orderItemsText ?? undefined,
+        is_partially_collected_param: validatedData.is_partially_collected,
+        item_collections_param: validatedData.order_items
+          .filter(item => item.product_id !== 0)
+          .map(item => ({
+            product_id: item.product_id,
+            quantity_collected: item.quantity_collected || 0
+          }))
       });
 
       if (rpcError) throw rpcError;
@@ -447,15 +466,16 @@ export default function EditOrderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95vw] max-w-2xl sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl max-h-[90vh] overflow-y-auto sm:w-full">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] max-w-2xl sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl max-h-[90vh] sm:w-full flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
             Edit Order - {order.client_name}
           </DialogTitle>
         </DialogHeader>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="flex-1 overflow-y-auto px-1">
+          <form onSubmit={handleSubmit} className="space-y-6 pb-4">
           {/* Client Info (Read-only) */}
           <div>
             <Label>Client *</Label>
@@ -505,6 +525,67 @@ export default function EditOrderDialog({
               onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
               className="mt-2"
             />
+          </div>
+
+          {/* Partially Collected Checkbox */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-1">
+              <Switch
+                id="partially-collected"
+                checked={formData.is_partially_collected || false}
+                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_partially_collected: checked }))}
+              />
+              <Label htmlFor="partially-collected">Partially Collected</Label>
+            </div>
+            
+            {/* Order Completed Button */}
+            {formData.is_partially_collected && (
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="text-green-600 border-gray-200 hover:bg-green-50"
+                  >
+                    Order Completed
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Complete Order</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will mark all items as fully collected and mark the order as completed. 
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        // Fill all collected quantities to max
+                        const updatedItems = formData.order_items.map(item => ({
+                          ...item,
+                          quantity_collected: item.quantity
+                        }));
+                        
+                        // Set collection date to today
+                        const today = new Date().toISOString().split('T')[0];
+                        
+                        setFormData(prev => ({
+                          ...prev,
+                          order_items: updatedItems,
+                          collection_date: today,
+                          is_partially_collected: false
+                        }));
+                      }}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Complete Order
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            )}
           </div>
 
           {/* Order Items */}
@@ -557,7 +638,7 @@ export default function EditOrderDialog({
             
             <div className="space-y-2">
               {formData.order_items.map((item, index) => (
-                <div key={index} className="flex flex-col sm:flex-row sm:items-center gap-2 p-2 border rounded">
+                <div key={index} className="relative flex flex-col sm:flex-row sm:items-center gap-2 p-2 border rounded">
                   <div className="flex-1">
                     <Select
                       value={item.product_id.toString()}
@@ -630,15 +711,54 @@ export default function EditOrderDialog({
                     })()}
                 </div>
 
+                {/* Quantity Collected - only show if partially collected is enabled */}
+                {formData.is_partially_collected && (
+                  <div className="flex items-center gap-1 sm:min-w-[120px] mt-2">
+                    <Label className="text-s">Collected:</Label>
+                    <div className="flex items-center border rounded-md">
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateOrderItem(index, 'quantity_collected', Math.max(0, (item.quantity_collected || 0) - 1))}
+                            className="h-8 w-8 p-0 hover:bg-gray-100"
+                        >
+                            <Minus className="h-3 w-3" />
+                        </Button>
+                        <Input
+                            type="number"
+                            min="0"
+                            max={item.quantity}
+                            value={item.quantity_collected || 0}
+                            onChange={(e) => updateOrderItem(index, 'quantity_collected', Math.min(item.quantity, Math.max(0, parseInt(e.target.value) || 0)))}
+                            className="w-12 h-8 text-center border-0 focus:ring-0"
+                        />
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => updateOrderItem(index, 'quantity_collected', Math.min(item.quantity, (item.quantity_collected || 0) + 1))}
+                            className="h-8 w-8 p-0 hover:bg-gray-100"
+                        >
+                            <Plus className="h-3 w-3" />
+                        </Button>           
+                    </div>
+                    
+                    <div className="text-sm text-gray-600 pl-2 min-w-[80px]">
+                        {item.quantity_collected || 0}/{item.quantity}
+                    </div>
+                  </div>
+                )}
+
                   {formData.order_items.length > 1 && (
                     <Button
                       type="button"
                       onClick={() => removeOrderItem(index)}
                       variant="ghost"
                       size="sm"
-                      className="self-start sm:self-center absolute right-7"
+                      className="absolute top-2 right-2 h-6 w-6 p-0 hover:bg-gray-100"
                     >
-                      <X className="h-4 w-4" />
+                      <X className="h-3 w-3" />
                     </Button>
                   )}
                 </div>
@@ -869,7 +989,8 @@ export default function EditOrderDialog({
               )}
             </Button>
           </div>
-        </form>
+          </form>
+        </div>
       </DialogContent>
     </Dialog>
   );

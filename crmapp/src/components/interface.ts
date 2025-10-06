@@ -58,8 +58,10 @@ export interface Client {
     payment_date: string | null;    // ISO date string
     shipping_location: string | null;
     notes: string | null;
-  order_items: string | null;
+    order_items: string | null;
     is_shared: boolean;
+    is_partially_collected: boolean;
+    collection_status: string;
   }
   
   /**
@@ -75,6 +77,7 @@ export interface Client {
   export interface OrderItem {
     product_id: number;
     quantity: number;
+    quantity_collected?: number;
   }
   
   // RPC Response Interfaces

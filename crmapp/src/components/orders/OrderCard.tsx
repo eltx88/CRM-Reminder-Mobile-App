@@ -93,6 +93,16 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
                   Expired
                 </Badge>
               )}
+              {order.is_partially_collected && (
+                <Badge variant="secondary" className="bg-yellow-50 text-yellow-700">
+                  Partially Collected
+                </Badge>
+              )}
+              {order.collection_date && (
+                <Badge variant="secondary" className="bg-green-50 text-green-700">
+                  Completed
+                </Badge>
+              )}
               {!order.can_edit && (
                 <Badge variant="secondary" className="bg-blue-50 text-blue-700">
                   Shared

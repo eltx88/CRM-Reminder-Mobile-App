@@ -83,6 +83,8 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       id: order.order_id,
       is_expired: new Date(order.expiry_date) < new Date(),
       can_edit: !order.is_shared,
+      is_partially_collected: order.is_partially_collected || false,
+      collection_status: order.collection_status || 'not_started',
     }));
   }, [ordersData]);
 

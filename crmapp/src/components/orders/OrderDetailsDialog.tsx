@@ -20,6 +20,8 @@ import {
   Package,
   User,
   Pencil,
+  CheckCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { Order } from '../interface';
 
@@ -67,8 +69,8 @@ export default function OrderDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[620px] lg:max-w-4xl xl:max-w-6xl">
-        <DialogHeader>
+      <DialogContent className="w-[95vw] max-w-2xl sm:max-w-4xl lg:max-w-6xl xl:max-w-7xl max-h-[90vh] sm:w-full flex flex-col">
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex flex-col gap-1">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Package className="h-4 w-4" />
@@ -91,6 +93,16 @@ export default function OrderDetailsDialog({
                   Active
                 </Badge>
               )}
+              {order.is_partially_collected && (
+                <Badge variant="secondary" className="bg-yellow-100 text-yellow-700 border-yellow-200">
+                  Partially Collected
+                </Badge>
+              )}
+              {order.collection_date && (
+                <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
+                  Completed
+                </Badge>
+              )}
               {!order.can_edit && (
                 <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">
                   Shared (read-only)
@@ -100,7 +112,8 @@ export default function OrderDetailsDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="flex-1 overflow-y-auto px-1">
+          <div className="space-y-6 pb-4">
           <section className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-lg border p-4 space-y-3">
               <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -145,6 +158,27 @@ export default function OrderDetailsDialog({
             </div>
           </section>
 
+          {/* Collection Status Section */}
+          {order.is_partially_collected && (
+            <section className="rounded-lg border p-4 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-gray-500" />
+                Collection Status
+              </h3>
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-3">
+                <div className="flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 text-yellow-600" />
+                  <span className="text-sm font-medium text-yellow-800">
+                    This order has been partially collected
+                  </span>
+                </div>
+                <p className="text-xs text-yellow-700 mt-1">
+                  Some items from this order have been collected. Check individual item quantities for details.
+                </p>
+              </div>
+            </section>
+          )}
+
           <section className="rounded-lg border p-4 space-y-3">
             <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
               <ListChecks className="h-4 w-4 text-gray-500" />
@@ -170,9 +204,10 @@ export default function OrderDetailsDialog({
               {order.notes ? order.notes : 'No notes added for this order.'}
             </p>
           </section>
+          </div>
         </div>
 
-        <DialogFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 pt-4">
+        <DialogFooter className="flex-shrink-0 flex flex-col sm:flex-row sm:items-center sm:justify-end gap-2 pt-4">
           {order.can_edit && (
             <Button onClick={() => onEdit(order)} className="sm:ml-auto">
               <Pencil className="mr-2 h-4 w-4" />
