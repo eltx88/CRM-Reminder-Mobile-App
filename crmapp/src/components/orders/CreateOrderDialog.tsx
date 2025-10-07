@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -56,6 +56,8 @@ export default function CreateOrderDialog({
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [clientSearchTerm, setClientSearchTerm] = useState('');
     const [showClientDropdown, setShowClientDropdown] = useState(false);
+    const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
+    const [isMaintenanceOrder, setIsMaintenanceOrder] = useState(false);
     const [isExpiryDateManuallyEdited, setIsExpiryDateManuallyEdited] = useState(false);
     const [expandedFields, setExpandedFields] = useState<{
       payment_mode: boolean;
@@ -97,7 +99,7 @@ export default function CreateOrderDialog({
   // Pre-select client when createSeed is provided
   useEffect(() => {
     if (createSeed && clients.length > 0) {
-      const client = clients.find(c => c.id === createSeed.clientId);
+      const client = clients.find(c => c.client_id === createSeed.clientId);
       if (client) {
         handleClientSelect(client);
       }
@@ -108,7 +110,7 @@ export default function CreateOrderDialog({
     try {
       setLoadingClients(true);
       const { data, error } = await supabase.rpc('get_clients_with_packages_for_admin', {
-        admin_uuid: userId
+        admin_uuid_param: userId
       });
 
       if (error) throw error;
@@ -151,6 +153,8 @@ export default function CreateOrderDialog({
     setSelectedClient(null);
     setClientSearchTerm('');
     setShowClientDropdown(false);
+    setShowMaintenanceDialog(false);
+    setIsMaintenanceOrder(false);
     setExpandedFields({
       payment_mode: false,
       shipping_location: false,
@@ -163,15 +167,25 @@ export default function CreateOrderDialog({
 
   // Filter clients based on search term
   const filteredClients = clients.filter(client =>
-    client.name.toLowerCase().includes(clientSearchTerm.toLowerCase())
+    client.client_name.toLowerCase().includes(clientSearchTerm.toLowerCase())
   );
 
   // Handle client selection
   const handleClientSelect = (client: Client) => {
-    setSelectedClient(client);
-    setClientSearchTerm(client.name);
-    setFormData(prev => ({ ...prev, client_id: client.id.toString() }));
-    setShowClientDropdown(false);
+    // Check if client has existing order and this is not already a maintenance order
+    if (client.has_existing_order && !isMaintenanceOrder) {
+      setSelectedClient(client);
+      setClientSearchTerm(client.client_name);
+      setFormData(prev => ({ ...prev, client_id: client
+        .client_id.toString() }));
+      setShowClientDropdown(false);
+      setShowMaintenanceDialog(true);
+    } else {
+      setSelectedClient(client);
+      setClientSearchTerm(client.client_name);
+      setFormData(prev => ({ ...prev, client_id: client.client_id.toString() }));
+      setShowClientDropdown(false);
+    }
   };
 
   // Handle manual expiry date changes
@@ -325,7 +339,7 @@ export default function CreateOrderDialog({
 
     const validationResult = orderSchema.safeParse({
       ...formData,
-      client_id: selectedClient ? selectedClient.id.toString() : ''
+      client_id: selectedClient ? selectedClient.client_id.toString() : ''
     });
 
     if (!validationResult.success) {
@@ -342,7 +356,7 @@ export default function CreateOrderDialog({
 
       const { data, error: rpcError } = await supabase.rpc('create_order', {
         admin_uuid: userId,
-        client_id_param: selectedClient!.id,
+        client_id_param: selectedClient!.client_id,
         order_number_param: validatedData.order_number ?? '',
         enrollment_date_param: validatedData.enrollment_date,
         expiry_date_param: validatedData.expiry_date,
@@ -353,6 +367,7 @@ export default function CreateOrderDialog({
         shipping_location_param: validatedData.shipping_location,
         notes_param: validatedData.notes,
         order_items_text_param: orderItemsText ?? undefined,
+        is_maintenance_param: isMaintenanceOrder,
       });
 
       if (rpcError) throw rpcError;
@@ -407,7 +422,7 @@ export default function CreateOrderDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Create New Order
+            {isMaintenanceOrder ? 'Create Maintenance Order' : 'Create New Order'}
           </DialogTitle>
         </DialogHeader>
 
@@ -435,7 +450,7 @@ export default function CreateOrderDialog({
                   onChange={(e) => {
                     setClientSearchTerm(e.target.value);
                     setShowClientDropdown(true);
-                    if (selectedClient && e.target.value !== selectedClient.name) {
+                    if (selectedClient && e.target.value !== selectedClient.client_name) {
                       setSelectedClient(null);
                       setFormData(prev => ({ ...prev, client_id: '' }));
                     }
@@ -445,18 +460,18 @@ export default function CreateOrderDialog({
                 />
                 {showClientDropdown && clientSearchTerm && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-auto">
-                    {filteredClients.filter(c => c.can_create_order).length === 0 ? (
+                    {filteredClients.length === 0 ? (
                       <div className="p-3 text-sm text-gray-500">No clients found</div>
                     ) : (
-                      filteredClients.filter(c => c.can_create_order).map((client) => (
+                      filteredClients.map((client) => (
                         <button
-                          key={client.id}
+                          key={client.client_id}
                           type="button"
                           className="w-full px-3 py-2 text-left hover:bg-gray-100 focus:bg-gray-100 focus:outline-none"
                           onClick={() => handleClientSelect(client)}
                         >
                           <div className="flex items-center justify-between w-full">
-                            <span className="font-medium">{client.name}</span>
+                            <span className="font-medium">{client.client_name}</span>
                             <div className="flex items-center gap-2 text-xs text-gray-500">
                               <span>{client.package_name}</span>
                               <span>•</span>
@@ -473,8 +488,13 @@ export default function CreateOrderDialog({
                     <div className="flex items-center gap-2">
                       <Check className="h-4 w-4 text-green-600" />
                       <span className="text-sm text-green-800">
-                        Selected: {selectedClient.name}
+                        Selected: {selectedClient.client_name}
                       </span>
+                      {isMaintenanceOrder && (
+                        <span className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                          Maintenance Pack Order
+                        </span>
+                      )}
                     </div>
                     <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
                       <div className="flex items-center gap-4">
@@ -881,6 +901,38 @@ export default function CreateOrderDialog({
         </div>
         </form>
       </DialogContent>
+
+      {/* Maintenance Order Confirmation Dialog */}
+      <AlertDialog open={showMaintenanceDialog} onOpenChange={setShowMaintenanceDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Existing Order Found</AlertDialogTitle>
+            <AlertDialogDescription>
+              Order already exists for {selectedClient?.client_name}. 
+              Would you like to create a maintenance pack order for this client instead?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => {
+              setShowMaintenanceDialog(false);
+              setSelectedClient(null);
+              setClientSearchTerm('');
+              setFormData(prev => ({ ...prev, client_id: '' }));
+            }}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setIsMaintenanceOrder(true);
+                setShowMaintenanceDialog(false);
+              }}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Create Maintenance Pack Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

@@ -62,6 +62,7 @@ export interface Client {
     is_shared: boolean;
     is_partially_collected: boolean;
     collection_status: string;
+    is_maintenance: boolean;
   }
   
   /**

@@ -37,6 +37,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [sortBy, setSortBy] = useState<SortBy>('enrollment_date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   const [showExpiredOnly, setShowExpiredOnly] = useState(false);
+  const [showCompletedOrders, setShowCompletedOrders] = useState(false);
   
   // Date range state - initialize with current month
   const getCurrentMonthRange = () => {
@@ -208,6 +209,11 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     if (showExpiredOnly) {
       orders = orders.filter(order => order.is_expired);
     }
+
+    // Hide completed orders by default (when showCompletedOrders is false)
+    if (!showCompletedOrders) {
+      orders = orders.filter(order => !order.collection_date);
+    }
     
     orders.sort((a, b) => {
       let valA, valB;
@@ -233,7 +239,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     });
 
     return orders;
-  }, [allOrders, searchTerm, showExpiredOnly, sortBy, sortOrder, useServerSidePagination]);
+  }, [allOrders, searchTerm, showExpiredOnly, showCompletedOrders, sortBy, sortOrder, useServerSidePagination]);
 
 
   const filteredManagedOrders = filteredAndSortedOrders.filter(o => o.can_edit);
@@ -325,15 +331,28 @@ export default function OrdersPage({ user }: OrdersPageProps) {
 
           <div className="md:col-span-10 mt-1">
             
-            <div className="flex items-center gap-2">
-              <Switch
-                id="show-expired"
-                checked={showExpiredOnly}
-                onCheckedChange={setShowExpiredOnly}
-              />
-              <label htmlFor="show-expired" className="text-sm">
-                Show expired orders
-              </label>
+            <div className="flex flex-col sm:flex-row gap-4">
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-expired"
+                  checked={showExpiredOnly}
+                  onCheckedChange={setShowExpiredOnly}
+                />
+                <label htmlFor="show-expired" className="text-sm">
+                  Show expired orders
+                </label>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Switch
+                  id="show-completed"
+                  checked={showCompletedOrders}
+                  onCheckedChange={setShowCompletedOrders}
+                />
+                <label htmlFor="show-completed" className="text-sm">
+                  Show completed orders
+                </label>
+              </div>
             </div>
 
             

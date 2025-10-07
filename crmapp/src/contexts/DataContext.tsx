@@ -222,7 +222,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         order_items: row.order_items,
         is_shared: row.is_shared,
         is_partially_collected: row.is_partially_collected || false,
-        collection_status: row.collection_status || 'not_started'
+        collection_status: row.collection_status || 'not_started',
+        is_maintenance: row.is_maintenance || false
       })) || [];
 
       const paginatedResponse: PaginatedOrdersResponse = {

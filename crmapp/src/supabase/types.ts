@@ -228,6 +228,7 @@ export type Database = {
           enrollment_date: string
           expiry_date: string
           id: number
+          is_maintenance: boolean
           is_partially_collected: boolean
           notes: string | null
           order_items: string | null
@@ -243,6 +244,7 @@ export type Database = {
           enrollment_date?: string
           expiry_date: string
           id?: number
+          is_maintenance?: boolean
           is_partially_collected?: boolean
           notes?: string | null
           order_items?: string | null
@@ -258,6 +260,7 @@ export type Database = {
           enrollment_date?: string
           expiry_date?: string
           id?: number
+          is_maintenance?: boolean
           is_partially_collected?: boolean
           notes?: string | null
           order_items?: string | null
@@ -399,6 +402,7 @@ export type Database = {
           collection_date_param?: string
           enrollment_date_param: string
           expiry_date_param: string
+          is_maintenance_param?: boolean
           notes_param?: string
           order_items_param?: Json
           order_items_text_param?: string
@@ -443,6 +447,7 @@ export type Database = {
           collection_status: string
           enrollment_date: string
           expiry_date: string
+          is_maintenance: boolean
           is_partially_collected: boolean
           notes: string
           order_id: number
@@ -476,16 +481,16 @@ export type Database = {
         Returns: Json
       }
       get_clients_with_packages_for_admin: {
-        Args: { admin_uuid: string }
+        Args: { admin_uuid_param: string }
         Returns: {
-          can_create_order: boolean
-          email: string
-          id: number
-          name: string
+          client_email: string
+          client_id: number
+          client_name: string
+          client_phone: string
+          has_existing_order: boolean
           package_id: number
           package_name: string
           package_points: number
-          phone: string
         }[]
       }
       get_dashboard_data: {
@@ -501,6 +506,7 @@ export type Database = {
           collection_status: string
           enrollment_date: string
           expiry_date: string
+          is_maintenance: boolean
           is_partially_collected: boolean
           is_shared: boolean
           item_id: number
@@ -534,6 +540,7 @@ export type Database = {
           collection_status: string
           enrollment_date: string
           expiry_date: string
+          is_maintenance: boolean
           is_partially_collected: boolean
           is_shared: boolean
           notes: string
@@ -640,6 +647,7 @@ export type Database = {
           collection_date_param?: string
           enrollment_date_param: string
           expiry_date_param: string
+          is_maintenance_param?: boolean
           is_partially_collected_param?: boolean
           item_collections_param?: Json
           notes_param?: string

@@ -1,13 +1,7 @@
 "use client";
 
 import { useMemo } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -101,6 +95,11 @@ export default function OrderDetailsDialog({
               {order.collection_date && (
                 <Badge variant="secondary" className="bg-green-100 text-green-700 border-green-200">
                   Completed
+                </Badge>
+              )}
+              {order.is_maintenance && (
+                <Badge variant="secondary" className="bg-purple-100 text-purple-700 border-purple-200">
+                  Maintenance Order
                 </Badge>
               )}
               {!order.can_edit && (

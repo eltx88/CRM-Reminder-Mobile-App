@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -28,6 +28,7 @@ const orderSchema = z.object({
       quantity_collected: z.number().min(0, 'Quantity collected cannot be negative.').optional(),
     })).min(1, 'At least one order item is required.'),
     is_partially_collected: z.boolean().optional(),
+    is_maintenance: z.boolean().optional(),
 });
 
 type orderFormData = z.infer<typeof orderSchema>;
@@ -50,7 +51,8 @@ const areOrderFormsEqual = (a: orderFormData, b: orderFormData): boolean => {
     a.shipping_location !== b.shipping_location ||
     a.notes !== b.notes ||
     a.order_items.length !== b.order_items.length ||
-    a.is_partially_collected !== b.is_partially_collected
+    a.is_partially_collected !== b.is_partially_collected ||
+    a.is_maintenance !== b.is_maintenance
   ) {
     return false;
   }
@@ -117,6 +119,7 @@ export default function EditOrderDialog({
     notes: '',
     order_items: [{ product_id: 0, quantity: 1, quantity_collected: 0 }],
     is_partially_collected: false,
+    is_maintenance: false,
   });
 
   // Load data and populate form when dialog opens
@@ -181,24 +184,36 @@ export default function EditOrderDialog({
             console.error('Error fetching client with package details:', clientError);
             // Fallback to order data if client details fail
             setSelectedClient({
-              id: order.client_id,
-              name: order.client_name,
+              client_id: order.client_id,
+              client_name: order.client_name,
+              client_email: '',
+              client_phone: '',
+              has_existing_order: false,
+              package_id: 0,
               package_name: order.package_name || '',
               package_points: order.package_points || 0
             } as Client);
           } else if (clientData && Array.isArray(clientData) && clientData.length > 0) {
             const clientDetails = clientData[0];
             setSelectedClient({
-              id: clientDetails.client_id,
-              name: clientDetails.client_name,
+              client_id: clientDetails.client_id,
+              client_name: clientDetails.client_name,
+              client_email: clientDetails.client_email || '',
+              client_phone: clientDetails.client_phone || '',
+              has_existing_order: false,
+              package_id: clientDetails.package_id || 0,
               package_name: clientDetails.package_name || '',
               package_points: clientDetails.package_points || 0 
              } as Client);
           } else {
             // If no client data returned, use order data
             setSelectedClient({
-              id: order.client_id,
-              name: order.client_name,
+              client_id: order.client_id,
+              client_name: order.client_name,
+              client_email: '',
+              client_phone: '',
+              has_existing_order: false,
+              package_id: 0,
               package_name: order.package_name || '',
               package_points: order.package_points || 0
               } as Client);
@@ -207,8 +222,12 @@ export default function EditOrderDialog({
           console.error('Error fetching client with package details:', err);
           // Fallback to order data
           setSelectedClient({
-            id: order.client_id,
-            name: order.client_name,
+            client_id: order.client_id,
+            client_name: order.client_name,
+            client_email: '',
+            client_phone: '',
+            has_existing_order: false,
+            package_id: 0,
             package_name: order.package_name || '',
             package_points: order.package_points || 0
           } as Client);
@@ -230,6 +249,7 @@ export default function EditOrderDialog({
         quantity_collected: item.quantity_collected || 0
       })),
       is_partially_collected: order.is_partially_collected || false,
+      is_maintenance: order.is_maintenance || false,
     };
 
     const clonedForm = cloneOrderFormData(nextFormData);
@@ -400,7 +420,6 @@ export default function EditOrderDialog({
 
     try {
       setLoading(true);
-
       const { data, error: rpcError } = await supabase.rpc('update_order', {
         admin_uuid: userId,
         order_id_param: order!.id,
@@ -423,7 +442,8 @@ export default function EditOrderDialog({
           .map(item => ({
             product_id: item.product_id,
             quantity_collected: item.quantity_collected || 0
-          }))
+          })),
+        is_maintenance_param: validatedData.is_maintenance
       });
 
       if (rpcError) throw rpcError;
@@ -491,7 +511,7 @@ export default function EditOrderDialog({
                 <div className="flex items-center gap-2">
                   <Check className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium text-blue-800">
-                    {selectedClient.name}
+                    {selectedClient.client_name}
                   </span>
                 </div>
                 <div className="mt-2 p-2 bg-white rounded text-sm">
@@ -586,6 +606,16 @@ export default function EditOrderDialog({
                 </AlertDialogContent>
               </AlertDialog>
             )}
+          </div>
+
+          {/* Maintenance Order Checkbox */}
+          <div className="flex items-center space-x-1">
+            <Switch
+              id="maintenance-order"
+              checked={formData.is_maintenance || false}
+              onCheckedChange={(checked) => setFormData(prev => ({ ...prev, is_maintenance: checked }))}
+            />
+            <Label htmlFor="maintenance-order">Maintenance Order</Label>
           </div>
 
           {/* Order Items */}

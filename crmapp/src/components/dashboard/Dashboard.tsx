@@ -42,13 +42,10 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
 
   // Initial load
   useEffect(() => {
-    console.log('Dashboard useEffect called, hasFetchedRef.current:', hasFetchedRef.current);
     if (hasFetchedRef.current) {
-      console.log('Dashboard: returning early due to hasFetchedRef');
       return;
     }
     hasFetchedRef.current = true;
-    console.log('Dashboard: calling refetch');
     // Set default date ranges for dashboard
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -89,13 +86,8 @@ export default function EnhancedDashboard({ user, onClientClick }: DashboardPage
       };
     }
 
-    // Debug: Log the actual data structure
-    console.log('reminderTypeDistribution data:', data.reminderTypeDistribution);
-
     const followUp = data.reminderTypeDistribution.find(item => item.name === 'FOLLOW_UP')?.value ?? 0;
     const expiry = data.reminderTypeDistribution.find(item => item.name === 'EXPIRY')?.value ?? 0;
-
-    console.log('Parsed counts - Follow Up:', followUp, 'Expiry:', expiry);
 
     return {
       followUp,
