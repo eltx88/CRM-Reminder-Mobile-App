@@ -1,19 +1,10 @@
 "use client";
 
-import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { ChevronRight, Calendar, Clock, MoreVertical, MessageCircle, Bell, ShoppingCart } from 'lucide-react';
+import { ChevronRight, Calendar, Clock } from 'lucide-react';
 import { format } from 'date-fns';
-import CreateOrderDialog from '../orders/CreateOrderDialog';
 
 interface ClientCardProps {
   client: {

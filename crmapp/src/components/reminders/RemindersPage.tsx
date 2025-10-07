@@ -46,7 +46,6 @@ interface RemindersPageProps {
 export default function RemindersPage({ user, createDialogOpen = false, onCreateDialogChange, createSeed }: RemindersPageProps) {
     const [reminders, setReminders] = useState<Reminder[]>([]);
     const [showActiveOnly, setShowActiveOnly] = useState(true);
-    const [localError, setLocalError] = useState<string | null>(null);
 
     // Filter and search states
     const [searchTerm, setSearchTerm] = useState('');
@@ -193,12 +192,9 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         fetchDashboardData(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0], true);
-      } else {
-        setLocalError(result.message);
       }
     } catch (err) {
-      console.error('Error updating reminder status:', err);
-      setLocalError(err instanceof Error ? err.message : 'Failed to update reminder');
+      throw(err);
     }
   };
 
@@ -226,12 +222,9 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
         const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
         fetchDashboardData(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0], true);
-      } else {
-        setLocalError(result.message);
       }
     } catch (err) {
-      console.error('Error deleting reminder:', err);
-      setLocalError(err instanceof Error ? err.message : 'Failed to delete reminder');
+      throw(err);
     }
   };
 

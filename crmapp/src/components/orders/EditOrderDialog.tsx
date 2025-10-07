@@ -104,7 +104,6 @@ export default function EditOrderDialog({
     notes: false,
   });
   const [products, setProducts] = useState<Product[]>([]);
-  const [loadingProducts, setLoadingProducts] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const initialFormRef = useRef<orderFormData | null>(null);
 
@@ -141,7 +140,6 @@ export default function EditOrderDialog({
 
   const loadProducts = async () => {
     try {
-      setLoadingProducts(true);
       const { data, error } = await supabase.rpc('get_products');
 
       if (error) throw error;
@@ -150,8 +148,6 @@ export default function EditOrderDialog({
     } catch (err) {
       console.error('Error loading products:', err);
       setError('Failed to load products');
-    } finally {
-      setLoadingProducts(false);
     }
   };
 

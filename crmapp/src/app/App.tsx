@@ -58,10 +58,6 @@ function AppContent() {
     setActiveView(tab as View);
   };
 
-  const handleClientClick = () => {
-    setActiveView('client-detail');
-  };
-
   const handleCreateReminder = (clientId: number, clientName: string) => {
     setCreateReminderSeed({ clientId, clientName });
     setCreateReminderOpen(true);
@@ -71,7 +67,7 @@ function AppContent() {
   const renderContent = () => {
     switch (activeView) {
       case 'dashboard':
-        return <DashboardPage user={user!} onClientClick={handleClientClick} />;
+        return <DashboardPage user={user!} />;
       case 'clients':
         return <ClientsPage user={user!} onCreateReminder={handleCreateReminder} />;
       case 'orders':
@@ -86,7 +82,7 @@ function AppContent() {
       case 'calendar':
         return <CalendarPage />;
       default:
-        return <DashboardPage user={user!} onClientClick={handleClientClick}/>;
+        return <DashboardPage user={user!} />;
     }
   };
 

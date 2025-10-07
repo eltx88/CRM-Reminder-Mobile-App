@@ -29,7 +29,6 @@ interface OrdersPageProps {
 
 export default function OrdersPage({ user }: OrdersPageProps) {
   const [allOrders, setAllOrders] = useState<Order[]>([]);
-  const [localError, setLocalError] = useState<string | null>(null);
   const hasFetchedRef = useRef(false);
   
   // Filter and search states
@@ -141,12 +140,10 @@ export default function OrdersPage({ user }: OrdersPageProps) {
         // Invalidate cache and force refresh
         invalidateCache('ordersData');
         refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
-      } else {
-        setLocalError('Failed to delete order');
       }
+
     } catch (err) {
-      console.error('Error deleting order:', err);
-      setLocalError(err instanceof Error ? err.message : 'Failed to delete order');
+      throw(err);
     }
   };
 

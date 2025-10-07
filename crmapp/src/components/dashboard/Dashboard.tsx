@@ -14,15 +14,13 @@ import ClientCard from './ClientCard';
 import { DonutChartCard } from './DonutChartCard';
 import ClientDetailsDialog from '../clients/ClientDetailsDialog';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { Search,ShoppingBag,RefreshCw,Bell,Package,TrendingUp } from 'lucide-react';  
-import { DashboardData } from '@/components/interface';
+import { Search,ShoppingBag,RefreshCw,Bell,Package,TrendingUp } from 'lucide-react';
 
 interface DashboardPageProps {
-  onClientClick: (clientId: number) => void;
   user: SupabaseUser;
 }
 
-export default function EnhancedDashboard({ user, onClientClick }: DashboardPageProps) {
+export default function EnhancedDashboard({ user }: DashboardPageProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('packages');
   const [showSharedClients, setShowSharedClients] = useState(false);
