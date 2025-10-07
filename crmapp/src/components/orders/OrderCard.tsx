@@ -43,13 +43,40 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
       }}
       className={`hover:shadow-md transition-shadow border-l-4 ${borderColor} relative cursor-pointer`}
     >
+      <div className="flex flex-wrap gap-1 absolute top-3 left-3">
+      {order.is_expired && (
+                <Badge variant="secondary" className="bg-red-50 text-red-700 text-xs">
+                  Expired
+                </Badge>
+              )}
+              {order.is_partially_collected && (
+                <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 text-xs">
+                  Partially Collected
+                </Badge>
+              )}
+              {order.collection_date && (
+                <Badge variant="secondary" className="bg-green-50 text-green-700 text-xs">
+                  Completed
+                </Badge>
+              )}
+              {order.is_maintenance && (
+                <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-xs">
+                  Maintenance Pack
+                </Badge>
+              )}
+              {!order.can_edit && (
+                <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs">
+                  Shared
+                </Badge>
+              )}
+            </div>
       {order.can_edit && (
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <button
               aria-label="Delete order"
               onClick={handleDeleteClick}
-              className="absolute top-2 right-3 p-1.5 sm:p-2 rounded hover:bg-gray-100 text-red-600 hover:text-red-700 z-10"
+              className="absolute top-3 right-4 p-1.5 sm:p-2 rounded hover:bg-gray-100 text-red-600 hover:text-red-700 z-10"
             >
               <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
             </button>
@@ -88,36 +115,6 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
                 <span className="font-small text-gray-600 truncate">Order No: {order.order_number}</span>
               )}
             </div>
-            
-            {/* Badges row - separate from main content */}
-            <div className="flex flex-wrap gap-1 mb-2">
-              {order.is_expired && (
-                <Badge variant="secondary" className="bg-red-50 text-red-700 text-xs">
-                  Expired
-                </Badge>
-              )}
-              {order.is_partially_collected && (
-                <Badge variant="secondary" className="bg-yellow-50 text-yellow-700 text-xs">
-                  Partially Collected
-                </Badge>
-              )}
-              {order.collection_date && (
-                <Badge variant="secondary" className="bg-green-50 text-green-700 text-xs">
-                  Completed
-                </Badge>
-              )}
-              {order.is_maintenance && (
-                <Badge variant="secondary" className="bg-purple-50 text-purple-700 text-xs">
-                  Maintenance Order
-                </Badge>
-              )}
-              {!order.can_edit && (
-                <Badge variant="secondary" className="bg-blue-50 text-blue-700 text-xs">
-                  Shared
-                </Badge>
-              )}
-            </div>
-            
 
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600 mb-2">
               <div className="flex items-center gap-1">

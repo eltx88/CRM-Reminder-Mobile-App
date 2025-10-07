@@ -40,7 +40,7 @@ const getPackageColor = (packageName: string | null | undefined) => {
     return 'bg-blue-100 text-blue-800 border-blue-200'; // Light blue
   }
   if (normalizedName.includes('advanced')) {
-    return 'bg-gray-100 text-gray-800 border-gray-200'; // Silver/Gray
+    return 'bg-gray-600 text-white border-gray-200'; // Silver/Gray
   }
   if (normalizedName.includes('premium')) {
     return 'bg-yellow-100 text-yellow-800 border-yellow-200'; // Gold
@@ -158,14 +158,14 @@ export default function ClientPageCard({
           </div>
 
           <div className="flex flex-col items-end gap-2">
-            {showManaged ? (
+            {/* {showManaged ? (
               <Badge variant="default">Managed</Badge>
             ) : (
               <Badge variant="outline">Shared</Badge>
-            )}
+            )} */}
             {client.lifewave_id && (
               <div className="text-xs text-muted-foreground">
-                Membership No: {client.lifewave_id}
+                Lifewave ID: {client.lifewave_id}
               </div>
             )}
           </div>
