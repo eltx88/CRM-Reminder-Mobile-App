@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Edit, AlertCircle, Loader2, User, Phone, Mail, X } from 'lucide-react';
+import { Edit, AlertCircle, Loader2, User, Phone, X } from 'lucide-react';
 
 interface Reminder {
   id: number;

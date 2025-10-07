@@ -203,7 +203,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         search_term: searchTerm || undefined,
         limit_count: limit,
         offset_count: (page - 1) * limit,
-      } as any);
+      });
 
       if (error) {
         console.error('Error fetching orders data:', error);
@@ -271,7 +271,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         sort_order: sortOrder,
         limit_count: limit,
         offset_count: (page - 1) * limit,
-      } as any);
+      });
 
       if (error) {
         console.error('Error fetching reminders data:', error);
@@ -348,7 +348,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
   const deleteClient = useCallback(async (userId: string, clientId: number) => {
     try {
-      const { data, error } = await supabase.rpc('delete_client', {
+      const { error } = await supabase.rpc('delete_client', {
         admin_uuid: userId,
         client_id_param: clientId
       });

@@ -300,9 +300,10 @@ export default function ClientDetailsDialog({
   if (!displayClient) return null;
 
   // Helper function to get display values
-  const getDisplayValue = (key: string) => {
+  const getDisplayValue = (key: string): string | number | null => {
     if (client) {
-      return (client as any)[key];
+      const value = (client as unknown as Record<string, unknown>)[key];
+      return typeof value === 'string' || typeof value === 'number' ? value : null;
     }
     if (clientDetails) {
       const mapping: { [key: string]: string } = {
@@ -311,7 +312,8 @@ export default function ClientDetailsDialog({
         'email': 'client_email',
         'id': 'client_id'
       };
-      return (clientDetails as any)[mapping[key] || key];
+      const value = (clientDetails as unknown as Record<string, unknown>)[mapping[key] || key];
+      return typeof value === 'string' || typeof value === 'number' ? value : null;
     }
     return null;
   };
@@ -561,7 +563,7 @@ export default function ClientDetailsDialog({
                     <div className="flex items-center gap-2">
                       <Phone className="h-4 w-4 text-muted-foreground" />
                       <span className="text-sm">{getDisplayValue('phone')}</span>
-                      <WhatsappButton phone={getDisplayValue('phone')} />
+                      <WhatsappButton phone={String(getDisplayValue('phone') || '')} />
                     </div>
                   )}
                   {getDisplayValue('email') && (

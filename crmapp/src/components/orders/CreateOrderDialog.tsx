@@ -932,7 +932,7 @@ export default function CreateOrderDialog({
                   }}
                   className="w-full sm:w-auto bg-blue-600 text-white border hover:bg-white hover:text-blue-600"
                 >
-                  Check Existing Orders (Year to Date)
+                  Check Existing Orders (Year to DateE)
                 </Button>
               )}
           <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
