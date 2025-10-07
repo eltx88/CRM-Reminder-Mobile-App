@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -89,26 +89,7 @@ export default function CreateOrderDialog({
         order_items: [{ product_id: 0, quantity: 1 }],
     });
 
-  // Load clients and products on open
-  useEffect(() => {
-    if (open) {
-      loadClients();
-      loadProducts();
-      resetForm();
-    }
-  }, [open]);
-
-  // Pre-select client when createSeed is provided
-  useEffect(() => {
-    if (createSeed && clients.length > 0) {
-      const client = clients.find(c => c.client_id === createSeed.clientId);
-      if (client) {
-        handleClientSelect(client);
-      }
-    }
-  }, [createSeed, clients]);
-
-  const loadClients = async () => {
+  const loadClients = useCallback(async () => {
     try {
       setLoadingClients(true);
       const { data, error } = await supabase.rpc('get_clients_with_packages_for_admin', {
@@ -124,7 +105,87 @@ export default function CreateOrderDialog({
     } finally {
       setLoadingClients(false);
     }
-  };
+  }, [userId]);
+
+  // Handle client selection
+  const handleClientSelect = useCallback((client: Client) => {
+    // Check if client has existing order and this is not already a maintenance order
+    if (client.has_existing_order && !isMaintenanceOrder) {
+      setSelectedClient(client);
+      setClientSearchTerm(client.client_name);
+      setFormData(prev => ({ ...prev, client_id: client
+        .client_id.toString() }));
+      setShowClientDropdown(false);
+      setShowMaintenanceDialog(true);
+    } else {
+      setSelectedClient(client);
+      setClientSearchTerm(client.client_name);
+      setFormData(prev => ({ ...prev, client_id: client.client_id.toString() }));
+      setShowClientDropdown(false);
+    }
+  }, [isMaintenanceOrder]);
+
+  // Calculate expiry date based on order items
+  const calculateExpiryDate = useCallback(() => {
+    if (!formData.enrollment_date) return '';
+
+    const enrollmentDate = new Date(formData.enrollment_date);
+    let maxDurationMonths = 0;
+
+    // Check if X39 is in the order items
+    const x39Item = formData.order_items.find(item => {
+      const product = products.find(p => p.id === item.product_id);
+      return product && product.name.toLowerCase().includes('x39');
+    });
+
+    if (x39Item) {
+      // Use X39 as base calculation
+      const x39Product = products.find(p => p.id === x39Item.product_id);
+      if (x39Product && x39Product.duration) {
+        const durationMonths = parseFloat(x39Product.duration);
+        maxDurationMonths = durationMonths * x39Item.quantity;
+      }
+    } else {
+      // Calculate based on all items, find the longest duration
+      formData.order_items.forEach(item => {
+        if (item.product_id !== 0) {
+          const product = products.find(p => p.id === item.product_id);
+          if (product && product.duration) {
+            const durationMonths = parseFloat(product.duration);
+            const totalDuration = durationMonths * item.quantity;
+            maxDurationMonths = Math.max(maxDurationMonths, totalDuration);
+          }
+        }
+      });
+    }
+
+    if (maxDurationMonths > 0) {
+      const expiryDate = new Date(enrollmentDate);
+      expiryDate.setMonth(expiryDate.getMonth() + maxDurationMonths);
+      return expiryDate.toISOString().split('T')[0];
+    }
+
+    return '';
+  }, [formData.enrollment_date, formData.order_items, products]);
+
+  // Load clients and products on open
+  useEffect(() => {
+    if (open) {
+      loadClients();
+      loadProducts();
+      resetForm();
+    }
+  }, [open, loadClients]);
+
+  // Pre-select client when createSeed is provided
+  useEffect(() => {
+    if (createSeed && clients.length > 0) {
+      const client = clients.find(c => c.client_id === createSeed.clientId);
+      if (client) {
+        handleClientSelect(client);
+      }
+    }
+  }, [createSeed, clients, handleClientSelect]);
 
   const loadProducts = async () => {
     try {
@@ -171,24 +232,6 @@ export default function CreateOrderDialog({
   const filteredClients = clients.filter(client =>
     client.client_name.toLowerCase().includes(clientSearchTerm.toLowerCase())
   );
-
-  // Handle client selection
-  const handleClientSelect = (client: Client) => {
-    // Check if client has existing order and this is not already a maintenance order
-    if (client.has_existing_order && !isMaintenanceOrder) {
-      setSelectedClient(client);
-      setClientSearchTerm(client.client_name);
-      setFormData(prev => ({ ...prev, client_id: client
-        .client_id.toString() }));
-      setShowClientDropdown(false);
-      setShowMaintenanceDialog(true);
-    } else {
-      setSelectedClient(client);
-      setClientSearchTerm(client.client_name);
-      setFormData(prev => ({ ...prev, client_id: client.client_id.toString() }));
-      setShowClientDropdown(false);
-    }
-  };
 
   // Handle manual expiry date changes
   const handleExpiryDateChange = (value: string) => {
@@ -276,49 +319,6 @@ export default function CreateOrderDialog({
       ...prev,
       order_items: [{ product_id: 0, quantity: 1 }]
     }));
-  };
-
-  // Calculate expiry date based on order items
-  const calculateExpiryDate = () => {
-    if (!formData.enrollment_date) return '';
-
-    const enrollmentDate = new Date(formData.enrollment_date);
-    let maxDurationMonths = 0;
-
-    // Check if X39 is in the order items
-    const x39Item = formData.order_items.find(item => {
-      const product = products.find(p => p.id === item.product_id);
-      return product && product.name.toLowerCase().includes('x39');
-    });
-
-    if (x39Item) {
-      // Use X39 as base calculation
-      const x39Product = products.find(p => p.id === x39Item.product_id);
-      if (x39Product && x39Product.duration) {
-        const durationMonths = parseFloat(x39Product.duration);
-        maxDurationMonths = durationMonths * x39Item.quantity;
-      }
-    } else {
-      // Calculate based on all items, find the longest duration
-      formData.order_items.forEach(item => {
-        if (item.product_id !== 0) {
-          const product = products.find(p => p.id === item.product_id);
-          if (product && product.duration) {
-            const durationMonths = parseFloat(product.duration);
-            const totalDuration = durationMonths * item.quantity;
-            maxDurationMonths = Math.max(maxDurationMonths, totalDuration);
-          }
-        }
-      });
-    }
-
-    if (maxDurationMonths > 0) {
-      const expiryDate = new Date(enrollmentDate);
-      expiryDate.setMonth(expiryDate.getMonth() + maxDurationMonths);
-      return expiryDate.toISOString().split('T')[0];
-    }
-
-    return '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -423,7 +423,7 @@ export default function CreateOrderDialog({
         }));
       }
     }
-  }, [formData.order_items, formData.enrollment_date, products, isExpiryDateManuallyEdited]);
+  }, [formData.order_items, formData.enrollment_date, formData.expiry_date, products, isExpiryDateManuallyEdited, calculateExpiryDate]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

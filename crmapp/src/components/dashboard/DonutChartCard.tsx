@@ -24,21 +24,22 @@ interface DonutChartCardProps {
   colorScheme?: 'default' | 'packages' | 'clients';
 }
 
+// Package color mapping
+const packageColors = {
+  'Core': '#60A5FA',      // Light blue
+  'Advanced': '#45474B',  // Silver
+  'Premium': '#FFD700',   // Gold
+  'Others': '#1E40AF'     // Dark blue
+};
+
+const clientColors = {
+  'My Clients': '#60A5FA',      // Light blue
+  'Clients Shared with Me': '#1E40AF',  // dark blue
+};
+
 export function DonutChartCard({ title, data, description, colorScheme = 'default' }: DonutChartCardProps) {
-  // Package color mapping
-  const packageColors = {
-    'Core': '#60A5FA',      // Light blue
-    'Advanced': '#45474B',  // Silver
-    'Premium': '#FFD700',   // Gold
-    'Others': '#1E40AF'     // Dark blue
-  };
 
-  const clientColors = {
-    'My Clients': '#60A5FA',      // Light blue
-    'Clients Shared with Me': '#1E40AF',  // dark blue
-  };
-
-  const getItemColor = (itemName: string, index: number) => {
+  const getItemColor = React.useCallback((itemName: string, index: number) => {
     if (colorScheme === 'packages') {
       // Try to match exact package name first
       const normalizedName = itemName.toLowerCase();
@@ -63,7 +64,7 @@ export function DonutChartCard({ title, data, description, colorScheme = 'defaul
     }
     // Default color scheme
     return `var(--chart-${(index % 5) + 1})`;
-  };
+  }, [colorScheme]);
 
   const chartData = React.useMemo(() => {
     if (!data || data.length === 0) return [];
@@ -73,7 +74,7 @@ export function DonutChartCard({ title, data, description, colorScheme = 'defaul
       value: item.value,
       fill: getItemColor(item.name, index),
     }));
-  }, [data, colorScheme]);
+  }, [data, getItemColor]);
   
   const chartConfig = React.useMemo(() => {
     const config: ChartConfig = {
@@ -92,7 +93,7 @@ export function DonutChartCard({ title, data, description, colorScheme = 'defaul
       });
     }
     return config;
-  }, [chartData, colorScheme]);
+  }, [chartData, getItemColor]);
 
   const totalValue = React.useMemo(() => {
     return chartData.reduce((acc, curr) => acc + curr.value, 0)

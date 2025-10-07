@@ -27,6 +27,7 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
   const [remindersDropdownOpen, setRemindersDropdownOpen] = useState(false);
   const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
   
   const { 
     dashboardData: data, 
@@ -37,6 +38,7 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
 
   // Initial load guard to prevent double calls
   const hasFetchedRef = useRef(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initial load
   useEffect(() => {
@@ -44,12 +46,33 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
       return;
     }
     hasFetchedRef.current = true;
+    
     // Set default date ranges for dashboard
     const today = new Date();
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
     const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+    
+    // Set a timeout to show a message if loading takes too long
+    timeoutRef.current = setTimeout(() => {
+      setShowTimeoutMessage(true);
+    }, 3000); // Show timeout message after 3 seconds
+    
     refetch(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0]);
+    
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
   }, [refetch, user.id]);
+
+  // Clear timeout when data loads
+  useEffect(() => {
+    if (!isLoading && timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      setShowTimeoutMessage(false);
+    }
+  }, [isLoading]);
 
   const filteredClients = data?.recentClients?.filter(client =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -121,14 +144,84 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
 
   if (isLoading) {
     return (
-      <div className="p-4 space-y-6 animate-pulse">
-        <div className="h-10 bg-muted rounded"></div>
+      <div className="p-4 space-y-6">
+        {/* Header with Search - Show immediately */}
+        <div className="flex items-center justify-between">
+          <div className="relative flex-1 max-w-l">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search recent clients..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button variant="outline" onClick={() => refetch(user.id, undefined, undefined, true)} className="ml-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+        </div>
+
+        {/* Stats Cards - Show with skeleton */}
         <div className="grid grid-cols-2 gap-4">
-          {[1, 2, 3, 4].map((i) => <div key={i} className="h-24 bg-muted rounded-lg"></div>)}
+          <div className="h-24 bg-muted rounded-lg animate-pulse flex items-center justify-center loading-skeleton">
+            <div className="text-center text-optimized">
+              <div className="text-2xl font-bold text-muted-foreground">Loading...</div>
+              <div className="text-sm text-muted-foreground">Orders This Month</div>
+            </div>
+          </div>
+          <div className="h-24 bg-muted rounded-lg animate-pulse flex items-center justify-center loading-skeleton">
+            <div className="text-center text-optimized">
+              <div className="text-2xl font-bold text-muted-foreground">Loading...</div>
+              <div className="text-sm text-muted-foreground">Reminders Today</div>
+            </div>
+          </div>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3].map((i) => <div key={i} className="h-64 bg-muted rounded-lg"></div>)}
+
+        {/* Charts - Show with skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="h-64 bg-muted rounded-lg animate-pulse flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-lg font-semibold text-muted-foreground mb-2">Loading Chart...</div>
+              <div className="text-sm text-muted-foreground">Package Distribution</div>
+            </div>
+          </div>
+          <div className="h-64 bg-muted rounded-lg animate-pulse flex items-center justify-center">
+            <div className="text-center">
+              <div className="text-lg font-semibold text-muted-foreground mb-2">Loading Stats...</div>
+              <div className="text-sm text-muted-foreground">Package Metrics</div>
+            </div>
+          </div>
         </div>
+
+        {/* Recent Clients - Show with skeleton */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-foreground">Recent Clients</h2>
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-20 bg-muted rounded-lg animate-pulse"></div>
+            ))}
+          </div>
+        </div>
+
+        {/* Timeout message */}
+        {showTimeoutMessage && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-center">
+            <div className="text-yellow-800 font-medium mb-2">Loading is taking longer than expected</div>
+            <div className="text-sm text-yellow-700">
+              This might be due to a slow database connection. Please wait or try refreshing.
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => refetch(user.id, undefined, undefined, true)} 
+              className="mt-2"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </div>
+        )}
       </div>
     );
   }
@@ -138,16 +231,16 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
   }
 
   return (
-    <div className="p-4 space-y-6">
-      {/* Header with Refresh */}
-      <div className="flex items-center justify-between">
+    <div className="p-4 space-y-6 dashboard-content">
+      {/* Header with Refresh - Critical content */}
+      <div className="flex items-center justify-between critical-content">
         <div className="relative flex-1 max-w-l">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search recent clients..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
+            className="pl-10 text-optimized"
           />
         </div>
         <Button variant="outline" onClick={() => refetch(user.id, undefined, undefined, true)} className="ml-4">

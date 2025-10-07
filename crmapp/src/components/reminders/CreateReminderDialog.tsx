@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/supabase/client';
 import {
   Dialog,
@@ -60,27 +60,7 @@ export default function CreateReminderDialog({
   });
   const [isMessageManuallyEdited, setIsMessageManuallyEdited] = useState(false);
 
-  // Fetch clients when dialog opens
-  useEffect(() => {
-    if (open) {
-      fetchClients();
-      resetForm();
-    }
-  }, [open, userId]);
-
-  useEffect(() => {
-    if (preselectedClient && open) {
-      const client = clients.find(c => c.id === preselectedClient.clientId);
-      if (client) {
-        setSelectedClient(client);
-        setClientSearchTerm(client.name);
-        setFormData(prev => ({ ...prev, client_id: client.id.toString() }));
-        setShowClientDropdown(false);
-      }
-    }
-  }, [preselectedClient, clients, open]);
-
-  const fetchClients = async () => {
+  const fetchClients = useCallback(async () => {
     try {
       setLoadingClients(true);
       setError(null);
@@ -100,9 +80,9 @@ export default function CreateReminderDialog({
     } finally {
       setLoadingClients(false);
     }
-  };
+  }, [userId]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setFormData({
       client_id: '',
       reminder_type: 'FOLLOW_UP',
@@ -114,7 +94,27 @@ export default function CreateReminderDialog({
     setShowClientDropdown(false);
     setError(null);
     setIsMessageManuallyEdited(false);
-  };
+  }, []);
+
+  // Fetch clients when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchClients();
+      resetForm();
+    }
+  }, [open, userId, fetchClients, resetForm]);
+
+  useEffect(() => {
+    if (preselectedClient && open) {
+      const client = clients.find(c => c.id === preselectedClient.clientId);
+      if (client) {
+        setSelectedClient(client);
+        setClientSearchTerm(client.name);
+        setFormData(prev => ({ ...prev, client_id: client.id.toString() }));
+        setShowClientDropdown(false);
+      }
+    }
+  }, [preselectedClient, clients, open]);
 
   // Get tomorrow's date as default
   const getTomorrowDate = (): string => {

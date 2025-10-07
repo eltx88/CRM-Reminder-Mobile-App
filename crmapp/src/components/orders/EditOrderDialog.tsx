@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '@/supabase/client';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
@@ -121,37 +121,7 @@ export default function EditOrderDialog({
     is_maintenance: false,
   });
 
-  // Load data and populate form when dialog opens
-  useEffect(() => {
-    const loadAndPopulate = async () => {
-      await loadProducts();
-      if (order) {
-        await populateForm();
-      }
-    };
-
-    if (open) {
-      loadAndPopulate();
-    } else {
-      initialFormRef.current = null;
-      setHasUnsavedChanges(false);
-    }
-  }, [open, order]);
-
-  const loadProducts = async () => {
-    try {
-      const { data, error } = await supabase.rpc('get_products');
-
-      if (error) throw error;
-      
-      setProducts(data || []);
-    } catch (err) {
-      console.error('Error loading products:', err);
-      setError('Failed to load products');
-    }
-  };
-
-  const populateForm = async () => {
+  const populateForm = useCallback(async () => {
     if (!order) return;
 
     setLoadingClient(true);
@@ -260,6 +230,79 @@ export default function EditOrderDialog({
     } finally {
       setLoadingClient(false);
     }
+  }, [order, userId]);
+
+  // Calculate expiry date based on order items
+  const calculateExpiryDate = useCallback(() => {
+    if (!formData.enrollment_date) return '';
+
+    const enrollmentDate = new Date(formData.enrollment_date);
+    let maxDurationMonths = 0;
+
+    // Check if X39 is in the order items
+    const x39Item = formData.order_items.find(item => {
+      const product = products.find(p => p.id === item.product_id);
+      return product && product.name.toLowerCase().includes('x39');
+    });
+
+    if (x39Item) {
+      // Use X39 as base calculation
+      const x39Product = products.find(p => p.id === x39Item.product_id);
+      if (x39Product && x39Product.duration) {
+        const durationMonths = parseFloat(x39Product.duration);
+        maxDurationMonths = durationMonths * x39Item.quantity;
+      }
+    } else {
+      // Calculate based on all items, find the longest duration
+      formData.order_items.forEach(item => {
+        if (item.product_id !== 0) {
+          const product = products.find(p => p.id === item.product_id);
+          if (product && product.duration) {
+            const durationMonths = parseFloat(product.duration);
+            const totalDuration = durationMonths * item.quantity;
+            maxDurationMonths = Math.max(maxDurationMonths, totalDuration);
+          }
+        }
+      });
+    }
+
+    if (maxDurationMonths > 0) {
+      const expiryDate = new Date(enrollmentDate);
+      expiryDate.setMonth(expiryDate.getMonth() + maxDurationMonths);
+      return expiryDate.toISOString().split('T')[0];
+    }
+
+    return '';
+  }, [formData.enrollment_date, formData.order_items, products]);
+
+  // Load data and populate form when dialog opens
+  useEffect(() => {
+    const loadAndPopulate = async () => {
+      await loadProducts();
+      if (order) {
+        await populateForm();
+      }
+    };
+
+    if (open) {
+      loadAndPopulate();
+    } else {
+      initialFormRef.current = null;
+      setHasUnsavedChanges(false);
+    }
+  }, [open, order, populateForm]);
+
+  const loadProducts = async () => {
+    try {
+      const { data, error } = await supabase.rpc('get_products');
+
+      if (error) throw error;
+      
+      setProducts(data || []);
+    } catch (err) {
+      console.error('Error loading products:', err);
+      setError('Failed to load products');
+    }
   };
 
   // Client selection is read-only in edit mode
@@ -337,49 +380,6 @@ export default function EditOrderDialog({
       ...prev,
       order_items: [{ product_id: 0, quantity: 1, quantity_collected: 0 }]
     }));
-  };
-
-  // Calculate expiry date based on order items
-  const calculateExpiryDate = () => {
-    if (!formData.enrollment_date) return '';
-
-    const enrollmentDate = new Date(formData.enrollment_date);
-    let maxDurationMonths = 0;
-
-    // Check if X39 is in the order items
-    const x39Item = formData.order_items.find(item => {
-      const product = products.find(p => p.id === item.product_id);
-      return product && product.name.toLowerCase().includes('x39');
-    });
-
-    if (x39Item) {
-      // Use X39 as base calculation
-      const x39Product = products.find(p => p.id === x39Item.product_id);
-      if (x39Product && x39Product.duration) {
-        const durationMonths = parseFloat(x39Product.duration);
-        maxDurationMonths = durationMonths * x39Item.quantity;
-      }
-    } else {
-      // Calculate based on all items, find the longest duration
-      formData.order_items.forEach(item => {
-        if (item.product_id !== 0) {
-          const product = products.find(p => p.id === item.product_id);
-          if (product && product.duration) {
-            const durationMonths = parseFloat(product.duration);
-            const totalDuration = durationMonths * item.quantity;
-            maxDurationMonths = Math.max(maxDurationMonths, totalDuration);
-          }
-        }
-      });
-    }
-
-    if (maxDurationMonths > 0) {
-      const expiryDate = new Date(enrollmentDate);
-      expiryDate.setMonth(expiryDate.getMonth() + maxDurationMonths);
-      return expiryDate.toISOString().split('T')[0];
-    }
-
-    return '';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -483,7 +483,7 @@ export default function EditOrderDialog({
         });
       }
     }
-  }, [formData.order_items, formData.enrollment_date, products, isExpiryDateManuallyEdited]);
+  }, [formData.order_items, formData.enrollment_date, formData.expiry_date, products, isExpiryDateManuallyEdited, calculateExpiryDate]);
 
   if (!order) return null;
 

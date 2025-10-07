@@ -40,8 +40,6 @@ function AppContent() {
     return () => subscription.unsubscribe();
   }, []);
 
-  // No initial data fetching - let individual pages handle their own data
-
   if (!user) {
     return <LoginPage onLogin={(loggedInUser: User) => setUser(loggedInUser)} />;
   }
@@ -49,7 +47,11 @@ function AppContent() {
   if (loading) {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+              <div className="text-lg font-semibold text-foreground">Loading CRM Dashboard</div>
+              <div className="text-sm text-muted-foreground mt-2">Please wait while we prepare your data...</div>
+            </div>
         </div>
     );
   }

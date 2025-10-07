@@ -108,11 +108,11 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     }
     hasFetchedRef.current = true;
     refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage);
-  }, [refetch, user.id, searchTerm, currentPage, itemsPerPage]);
+  }, [refetch, user.id, searchTerm, currentPage, itemsPerPage, dateRange.startDate, dateRange.endDate]);
 
   const handleRefresh = useCallback(() => {
     refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
-  }, [refetch, user.id, dateRange, searchTerm, currentPage, itemsPerPage]);
+  }, [refetch, user.id, dateRange.startDate, dateRange.endDate, searchTerm, currentPage, itemsPerPage]);
 
   // Handle date range change
   const handleDateRangeChange = (startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
@@ -175,7 +175,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, value, 1, itemsPerPage, true);
     }
     // For client-side, filtering happens in useMemo below
-  }, [useServerSidePagination, user.id, refetch, invalidateCache, itemsPerPage]);
+  }, [useServerSidePagination, user.id, refetch, invalidateCache, itemsPerPage, dateRange.startDate, dateRange.endDate]);
 
   // Handle page change
   const handlePageChange = useCallback((page: number) => {

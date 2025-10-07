@@ -19,6 +19,29 @@ button, [role="button"] {
   transform: translateZ(0);
 }
 
+/* LCP optimizations */
+.loading-skeleton {
+  content-visibility: auto;
+  contain-intrinsic-size: 200px;
+}
+
+/* Prevent layout shift during loading */
+.dashboard-content {
+  min-height: 400px;
+}
+
+/* Optimize text rendering */
+.text-optimized {
+  text-rendering: optimizeSpeed;
+  font-display: swap;
+}
+
+/* Critical content should be visible immediately */
+.critical-content {
+  content-visibility: visible;
+  contain-intrinsic-size: 0;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

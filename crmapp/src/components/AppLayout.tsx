@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import { useMemo, useCallback } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -31,26 +31,29 @@ export default function AppLayout({
 }: AppLayoutProps) {
   const { dashboardData } = useData();
   
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     await supabase.auth.signOut();
     onLogout();
-  };
+  }, [onLogout]);
 
-  // Get reminders count for today
-  const remindersCount = dashboardData?.stats?.pendingReminders || 0;
+  // Memoize reminders count to prevent unnecessary recalculations
+  const remindersCount = useMemo(() => {
+    return dashboardData?.stats?.pendingReminders || 0;
+  }, [dashboardData?.stats?.pendingReminders]);
 
-  const navigationItems: Array<{
+  // Memoize navigation items to prevent recreation on every render
+  const navigationItems = useMemo((): Array<{
     id: string;
     label: string;
     icon: React.ComponentType<{ className?: string }>;
     badge?: number;
-  }> = [
+  }> => [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { id: 'clients', label: 'Clients', icon: Users },
-    { id: 'orders', label: 'Orders', icon:Package},
+    { id: 'orders', label: 'Orders', icon: Package },
     { id: 'reminders', label: 'Alerts', icon: Bell, badge: remindersCount },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
-  ];
+  ], [remindersCount]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -107,9 +110,9 @@ export default function AppLayout({
                 }}
               >
                 <div className="relative">
-                  <Icon 
-                    className="h-5 w-5 mb-1" 
-                  />
+                  <span style={{ pointerEvents: 'none' }}>
+                    <Icon className="h-5 w-5 mb-1" />
+                  </span>
                   {badge !== null && badge !== undefined && badge > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                       {badge}

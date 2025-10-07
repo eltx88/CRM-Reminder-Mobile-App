@@ -123,15 +123,26 @@ export function DataProvider({ children }: { children: ReactNode }) {
       return;
     }
 
+    // Prevent duplicate requests
+    if (isLoading.dashboardData) {
+      return;
+    }
+
     setIsLoading(prev => ({ ...prev, dashboardData: true }));
     setErrors(prev => ({ ...prev, dashboardData: null }));
 
     try {
+      // Add timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
       const { data, error } = await supabase.rpc('get_dashboard_data', {
         admin_uuid: userId,
         start_date: startDate || undefined,
         end_date: endDate || undefined,
       });
+
+      clearTimeout(timeoutId);
 
       if (error) {
         console.error('Error fetching dashboard data:', error);
@@ -145,11 +156,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
         lastFetched: { ...prev.lastFetched, dashboardData: Date.now() }
       }));
     } catch (error: unknown) {
-      setErrors(prev => ({ ...prev, dashboardData: error instanceof Error ? error.message : 'Unknown error' }));
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Dashboard data fetch error:', errorMessage);
+      setErrors(prev => ({ ...prev, dashboardData: errorMessage }));
     } finally {
       setIsLoading(prev => ({ ...prev, dashboardData: false }));
     }
-  }, [cache.dashboardData, cache.lastFetched.dashboardData]);
+  }, [cache.dashboardData, cache.lastFetched.dashboardData, isLoading.dashboardData]);
 
   const fetchClientsData = useCallback(async (userId: string, forceRefresh = false) => {
     if (!forceRefresh && cache.clientsData && isCacheValid(cache.lastFetched.clientsData)) {
