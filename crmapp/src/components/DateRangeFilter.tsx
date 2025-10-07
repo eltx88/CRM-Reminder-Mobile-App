@@ -5,8 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronUp, Calendar } from 'lucide-react';
+import { Calendar } from 'lucide-react';
 
 export type DateRangeType = 'thisMonth' | 'yearToDate' | 'last3Months' | 'last6Months' | 'today' | 'thisWeek' | 'custom';
 
@@ -14,15 +13,22 @@ interface DateRangeFilterProps {
   type: 'orders' | 'reminders';
   onDateRangeChange: (startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => void;
   className?: string;
+  selectedRange?: DateRangeType;
 }
 
-export function DateRangeFilter({ type, onDateRangeChange, className = '' }: DateRangeFilterProps) {
+export function DateRangeFilter({ type, onDateRangeChange, className = '', selectedRange: externalSelectedRange }: DateRangeFilterProps) {
   const [selectedRange, setSelectedRange] = useState<DateRangeType>(
     type === 'orders' ? 'thisMonth' : 'today'
   );
   const [customStartDate, setCustomStartDate] = useState('');
   const [customEndDate, setCustomEndDate] = useState('');
-  const [isCustomOpen, setIsCustomOpen] = useState(false);
+
+  // Sync with external selectedRange prop
+  useEffect(() => {
+    if (externalSelectedRange) {
+      setSelectedRange(externalSelectedRange);
+    }
+  }, [externalSelectedRange]);
 
   const getDateRangeOptions = () => {
     if (type === 'orders') {
@@ -110,17 +116,14 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
     setSelectedRange(range);
     
     if (range === 'custom') {
-      setIsCustomOpen(true);
-      return;
+      return; // Don't trigger date change yet, wait for user to set dates
     }
     
-    // Close custom section when switching away from custom
-    setIsCustomOpen(false);
     const { startDate, endDate } = getDateRange(range);
     onDateRangeChange(startDate, endDate);
   };
 
-  const handleCustomDateApply = () => {
+  const handleCustomDateChange = () => {
     if (customStartDate && customEndDate) {
       onDateRangeChange(customStartDate, customEndDate);
     }
@@ -156,27 +159,24 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
         </SelectContent>
       </Select>
 
-      <Collapsible open={isCustomOpen} onOpenChange={setIsCustomOpen}>
-        <CollapsibleTrigger asChild>
-          <Button
-            variant="outline"
-            className="w-full justify-between"
-            disabled={selectedRange !== 'custom'}
-          >
-            <span>Custom Date Range</span>
-            {isCustomOpen ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-          </Button>
-        </CollapsibleTrigger>
-        <CollapsibleContent className="space-y-3 pt-3">
-          <div className="grid grid-cols-2 gap-3">
+      {/* Custom Date Range Fields - Only show when "Date Range" is selected */}
+      {selectedRange === 'custom' && (
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-1">
             <div className="space-y-2">
               <Label htmlFor="start-date">Start Date</Label>
               <Input
                 id="start-date"
                 type="date"
                 value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                disabled={selectedRange !== 'custom'}
+                onChange={(e) => {
+                  setCustomStartDate(e.target.value);
+                  // Auto-trigger date change when both dates are set
+                  if (e.target.value && customEndDate) {
+                    onDateRangeChange(e.target.value, customEndDate);
+                  }
+                }}
+                className="pr-8 sm:pr-4"
               />
             </div>
             <div className="space-y-2">
@@ -185,14 +185,20 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
                 id="end-date"
                 type="date"
                 value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                disabled={selectedRange !== 'custom'}
+                onChange={(e) => {
+                  setCustomEndDate(e.target.value);
+                  // Auto-trigger date change when both dates are set
+                  if (e.target.value && customStartDate) {
+                    onDateRangeChange(customStartDate, e.target.value);
+                  }
+                }}
+                className="pr-8 sm:pr-4"    
               />
             </div>
           </div>
           <div className="flex space-x-2">
             <Button
-              onClick={handleCustomDateApply}
+              onClick={handleCustomDateChange}
               disabled={!customStartDate || !customEndDate}
               size="sm"
               className="flex-1"
@@ -208,8 +214,8 @@ export function DateRangeFilter({ type, onDateRangeChange, className = '' }: Dat
               Clear
             </Button>
           </div>
-        </CollapsibleContent>
-      </Collapsible>
+        </div>
+      )}
     </div>
   );
 }

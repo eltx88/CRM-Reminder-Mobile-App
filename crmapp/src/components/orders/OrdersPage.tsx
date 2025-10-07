@@ -51,6 +51,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   };
   
   const [dateRange, setDateRange] = useState<{ startDate: string | null; endDate: string | null }>(getCurrentMonthRange());
+  const [selectedDateRangeType, setSelectedDateRangeType] = useState<DateRangeType>('thisMonth');
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -118,6 +119,9 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const handleDateRangeChange = (startDate: string | null, endDate: string | null, rangeType?: DateRangeType) => {
     console.log('handleDateRangeChange called with:', { startDate, endDate, rangeType });
     setDateRange({ startDate, endDate });
+    if (rangeType) {
+      setSelectedDateRangeType(rangeType);
+    }
     setCurrentPage(1); // Reset to first page
     // Force refresh with new date range
     refetch(user.id, startDate || undefined, endDate || undefined, searchTerm, 1, itemsPerPage, true);
@@ -284,6 +288,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
             <DateRangeFilter
               type="orders"
               onDateRangeChange={handleDateRangeChange}
+              selectedRange={selectedDateRangeType}
             />
           </div>
 
@@ -453,6 +458,21 @@ export default function OrdersPage({ user }: OrdersPageProps) {
           refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, currentPage, itemsPerPage, true);
         }}
         userId={user.id}
+        onCheckOrders={(clientName) => {
+          setSearchTerm(clientName);
+          setCurrentPage(1);
+          
+          // Set date range to "Year to Date"
+          const now = new Date();
+          const today = now.toISOString().split('T')[0];
+          const startOfYear = new Date(now.getFullYear(), 0, 1).toISOString().split('T')[0];
+          
+          setDateRange({ startDate: startOfYear, endDate: today });
+          setSelectedDateRangeType('yearToDate');
+          
+          // Force refresh with the new search term and year-to-date range
+          refetch(user.id, startOfYear, today, clientName, 1, itemsPerPage, true);
+        }}
       />
 
       <EditOrderDialog

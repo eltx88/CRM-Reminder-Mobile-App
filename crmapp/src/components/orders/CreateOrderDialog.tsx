@@ -39,6 +39,7 @@ interface CreateOrderDialogProps {
   onSuccess: () => void;
   userId: string;
   createSeed?: { clientId: number; clientName: string } | null;
+  onCheckOrders?: (clientName: string) => void;
 }
 
 export default function CreateOrderDialog({
@@ -46,7 +47,8 @@ export default function CreateOrderDialog({
   onOpenChange,
   onSuccess,
   userId,
-  createSeed
+  createSeed,
+  onCheckOrders
 }: CreateOrderDialogProps) {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -913,27 +915,41 @@ export default function CreateOrderDialog({
       <AlertDialog open={showMaintenanceDialog} onOpenChange={setShowMaintenanceDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Existing Order Found</AlertDialogTitle>
+            <AlertDialogTitle className="text-md">Existing Orders Found for</AlertDialogTitle>
+            <AlertDialogTitle className="text-md">{selectedClient?.client_name}</AlertDialogTitle>
             <AlertDialogDescription>
-              Order already exists for {selectedClient?.client_name}. 
-              Would you like to create a maintenance pack order for this client instead?
+     
+              Would you like to create a maintenance pack order or a regular  order?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => {
-              setShowMaintenanceDialog(false);
-              setSelectedClient(null);
-              setClientSearchTerm('');
-              setFormData(prev => ({ ...prev, client_id: '' }));
-            }}>
-              Cancel
-            </AlertDialogCancel>
+          {onCheckOrders && selectedClient && (
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    onCheckOrders(selectedClient.client_name);
+                    setShowMaintenanceDialog(false);
+                    onOpenChange(false);
+                  }}
+                  className="w-full sm:w-auto bg-blue-600 text-white border hover:bg-white hover:text-blue-600"
+                >
+                  Check Existing Orders (Year to Date)
+                </Button>
+              )}
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
+            <div className="flex flex-col gap-2 w-full sm:w-auto">
+              <AlertDialogCancel onClick={() => {
+                setShowMaintenanceDialog(false);
+                setIsMaintenanceOrder(false);
+              }}>
+                Create New Order
+              </AlertDialogCancel>
+            </div>
             <AlertDialogAction
               onClick={() => {
                 setIsMaintenanceOrder(true);
                 setShowMaintenanceDialog(false);
               }}
-              className="bg-blue-600 hover:bg-blue-700"
+              className="bg-white text-black-500 border hover:bg-white hover:text-blue-600 w-full mt-2 sm:w-auto"
             >
               Create Maintenance Pack Order
             </AlertDialogAction>
