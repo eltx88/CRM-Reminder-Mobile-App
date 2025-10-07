@@ -43,7 +43,6 @@ const fetchPackages = async (): Promise<Package[]> => {
 };
 
 const createClient = async (clientData: ClientFormData, adminId: string): Promise<CreateClientResponse> => {
-  // Combine country code and phone number
   const fullPhoneNumber = clientData.countryCode && clientData.phone 
     ? `${clientData.countryCode}${clientData.phone}` 
     : clientData.phone;
@@ -111,9 +110,9 @@ export default function CreateClientDialog({
       } else {
         toast.error(result.message || 'Failed to create client');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create client:', error);
-      toast.error(error.message || 'Failed to create client. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to create client. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

@@ -43,7 +43,7 @@ function AppContent() {
   // No initial data fetching - let individual pages handle their own data
 
   if (!user) {
-    return <LoginPage onLogin={(loggedInUser:any) => setUser(loggedInUser)} />;
+    return <LoginPage onLogin={(loggedInUser: User) => setUser(loggedInUser)} />;
   }
 
   if (loading) {
@@ -58,7 +58,7 @@ function AppContent() {
     setActiveView(tab as View);
   };
 
-  const handleClientClick = (clientId: number) => {
+  const handleClientClick = (_clientId: number) => {
     setActiveView('client-detail');
   };
 

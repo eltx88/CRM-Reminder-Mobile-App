@@ -1,6 +1,24 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Performance optimizations for SVG icons */
+svg {
+  pointer-events: none;
+  will-change: auto;
+}
+
+/* Force hardware acceleration for interactive elements */
+button, [role="button"] {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+/* Optimize dropdown menus */
+[data-radix-popper-content-wrapper] {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

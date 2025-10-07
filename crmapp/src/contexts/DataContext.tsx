@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { supabase } from '@/supabase/client';
-import { DashboardData, ClientsData, FetchedOrder, Reminder } from '@/components/interface';
+import { DashboardData, ClientsData, FetchedOrder, Reminder, Client } from '@/components/interface';
 
 // Pagination response interfaces
 interface PaginatedOrdersResponse {
@@ -101,7 +101,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     remindersData: false,
   });
 
-  const [errors, setErrors] = useState({
+  const [errors, setErrors] = useState<{
+    dashboardData: string | null;
+    clientsData: string | null;
+    ordersData: string | null;
+    remindersData: string | null;
+  }>({
     dashboardData: null,
     clientsData: null,
     ordersData: null,
@@ -139,8 +144,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         dashboardData,
         lastFetched: { ...prev.lastFetched, dashboardData: Date.now() }
       }));
-    } catch (error: any) {
-      setErrors(prev => ({ ...prev, dashboardData: error.message }));
+    } catch (error: unknown) {
+      setErrors(prev => ({ ...prev, dashboardData: error instanceof Error ? error.message : 'Unknown error' }));
     } finally {
       setIsLoading(prev => ({ ...prev, dashboardData: false }));
     }
@@ -164,7 +169,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         throw new Error('Could not fetch clients data');
       }
 
-      const response = data as unknown as { managedClients: any[]; sharedClients: any[] };
+      const response = data as unknown as { managedClients: Client[]; sharedClients: Client[] };
       const clientsData: ClientsData = {
         managedClients: response?.managedClients || [],
         sharedClients: response?.sharedClients || []
@@ -175,8 +180,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         clientsData,
         lastFetched: { ...prev.lastFetched, clientsData: Date.now() }
       }));
-    } catch (error: any) {
-      setErrors(prev => ({ ...prev, clientsData: error.message }));
+    } catch (error: unknown) {
+      setErrors(prev => ({ ...prev, clientsData: error instanceof Error ? error.message : 'Unknown error' }));
     } finally {
       setIsLoading(prev => ({ ...prev, clientsData: false }));
     }
@@ -240,8 +245,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         ordersData: paginatedResponse,
         lastFetched: { ...prev.lastFetched, ordersData: Date.now() }
       }));
-    } catch (error: any) {
-      setErrors(prev => ({ ...prev, ordersData: error.message }));
+    } catch (error: unknown) {
+      setErrors(prev => ({ ...prev, ordersData: error instanceof Error ? error.message : 'Unknown error' }));
     } finally {
       setIsLoading(prev => ({ ...prev, ordersData: false }));
     }
@@ -301,8 +306,8 @@ export function DataProvider({ children }: { children: ReactNode }) {
         remindersData: paginatedResponse,
         lastFetched: { ...prev.lastFetched, remindersData: Date.now() }
       }));
-    } catch (error: any) {
-      setErrors(prev => ({ ...prev, remindersData: error.message }));
+    } catch (error: unknown) {
+      setErrors(prev => ({ ...prev, remindersData: error instanceof Error ? error.message : 'Unknown error' }));
     } finally {
       setIsLoading(prev => ({ ...prev, remindersData: false }));
     }
@@ -355,7 +360,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
 
       // Invalidate clients cache to force refresh
       invalidateCache('clientsData');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error deleting client:', error);
       throw error;
     }

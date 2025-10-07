@@ -1,8 +1,8 @@
-export interface RPCResponse<T = any> {
+export interface RPCResponse<T = unknown> {
     success: boolean;
     message?: string;
     data?: T;
-    [key: string]: any; // Allow additional properties
+    [key: string]: unknown; // Allow additional properties
   }
   
   export const handleRPCResponse = <T>(data: unknown): T => {

@@ -12,7 +12,7 @@ import { AlertCircle, Loader2, Plus, Minus, Package, Coins, Check, ChevronDown, 
 import { Switch } from '@/components/ui/switch';
 import { Database } from '@/supabase/types';
 import * as z from 'zod';
-import { OrderItem } from '../interface';
+import { OrderItem, Order } from '../interface';
 const orderSchema = z.object({
     order_number: z.string().optional().transform(val => val || undefined),
     enrollment_date: z.string().min(1, 'Enrollment date is required'),
@@ -75,7 +75,7 @@ interface EditOrderDialogProps {
   onOpenChange: (open: boolean) => void;
   onSuccess: () => void;
   userId: string;
-  order: any | null;
+  order: Order | null;
 }
 
 export default function EditOrderDialog({

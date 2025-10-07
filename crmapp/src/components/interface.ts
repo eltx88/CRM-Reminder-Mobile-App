@@ -72,7 +72,9 @@ export interface Client {
   export interface Order extends FetchedOrder {
     id: number;      
     is_expired: boolean; 
-    can_edit: boolean;   
+    can_edit: boolean;
+    package_name?: string | null;
+    package_points?: number | null;
   }
   
   export interface OrderItem {
@@ -146,13 +148,13 @@ export interface Client {
   
   // Component Props Interfaces
   export interface DashboardPageProps {
-    onClientClick: (clientId: number) => void;
-    user: any;
+    onClientClick: (clientId: number) => void;
+    user: { id: string; email?: string };
   }
   
   export interface ClientsPageProps {
-    user: any;
-    onCreateReminder: (clientId: number, clientName: string) => void;
+    user: { id: string; email?: string };
+    onCreateReminder: (clientId: number, clientName: string) => void;
   }
   
   export interface CreateClientDialogProps {

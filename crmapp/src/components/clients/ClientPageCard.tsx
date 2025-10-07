@@ -123,19 +123,28 @@ export default function ClientPageCard({
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
               {client.phone && (
                 <div className="flex items-center gap-2">
-                  <Phone className="h-4 w-4 text-muted-foreground" />
+                  <Phone 
+                    className="h-4 w-4 text-muted-foreground" 
+                    style={{ pointerEvents: 'none' }}
+                  />
                   <span>{client.phone}</span>
                 </div>
               )}
               {client.email && (
                 <div className="flex items-center gap-2">
-                  <Mail className="h-4 w-4 text-muted-foreground" />
+                  <Mail 
+                    className="h-4 w-4 text-muted-foreground" 
+                    style={{ pointerEvents: 'none' }}
+                  />
                   <span className="truncate">{client.email}</span>
                 </div>
               )}
                {client.package_name && (
                  <div className="flex items-center gap-2">
-                   <Package className="h-4 w-4 text-muted-foreground" />
+                   <Package 
+                     className="h-4 w-4 text-muted-foreground" 
+                     style={{ pointerEvents: 'none' }}
+                   />
                    <Badge 
                      variant="secondary" 
                      className={`${getPackageColor(client.package_name)} border`}
@@ -145,7 +154,10 @@ export default function ClientPageCard({
                  </div>
                )}
               <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar 
+                  className="h-4 w-4 text-muted-foreground" 
+                  style={{ pointerEvents: 'none' }}
+                />
                 <span>Added {formatDate(client.created_at)}</span>
               </div>
             </div>
@@ -192,15 +204,15 @@ export default function ClientPageCard({
                 </DropdownMenuItem>
               )} */}
               <DropdownMenuItem onClick={handleCreateReminder}>
-                <Bell className="h-4 w-4 mr-2" />
+                <Bell className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
                 Create Reminder
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleCreateOrder}>
-                <ShoppingCart className="h-4 w-4 mr-2" />
+                <ShoppingCart className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
                 Create Order
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
-                <Trash2 className="text-red-500 h-4 w-4 mr-2" />
+                <Trash2 className="text-red-500 h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
                 Delete Client
               </DropdownMenuItem>
             </DropdownMenuContent>

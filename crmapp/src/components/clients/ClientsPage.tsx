@@ -10,7 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select,SelectContent,SelectItem,SelectTrigger,SelectValue } from '@/components/ui/select';
 import { DropdownMenu,DropdownMenuContent,DropdownMenuTrigger,DropdownMenuCheckboxItem,DropdownMenuItem } from '@/components/ui/dropdown-menu';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Search, Plus, Users, Share2, RefreshCw, AlertTriangle } from 'lucide-react';  
+import { Search, Plus, Users, Share2, RefreshCw, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';  
 import CreateClientDialog from './CreateClientDialog';
 import ClientDetailsDialog from './ClientDetailsDialog';
 import CreateOrderDialog from '../orders/CreateOrderDialog';
@@ -43,6 +43,10 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   const [createOrderSeed, setCreateOrderSeed] = useState<{ clientId: number; clientName: string } | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
   const { 
     clientsData: data, 
@@ -64,7 +68,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     refetch(user.id);
   }, [refetch, user.id]);
 
-  const sortClients = (clients: any[]) => {
+  const sortClients = (clients: Client[]) => {
     return [...clients].sort((a, b) => {
       switch (sortBy) {
         case 'age-oldest':
@@ -84,7 +88,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     });
   };
 
-  const filterByPackages = (clients: any[]) => {
+  const filterByPackages = (clients: Client[]) => {
     if (selectedPackages.length === 0) return clients;
     
     return clients.filter(client => {
@@ -117,6 +121,21 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   
   const sortedManagedClients = sortClients(packageFilteredManagedClients);
   const sortedSharedClients = sortClients(packageFilteredSharedClients);
+
+  // Get current clients based on active tab
+  const currentClients = activeTab === 'managed' ? sortedManagedClients : sortedSharedClients;
+  
+  // Pagination calculations
+  const totalClients = currentClients.length;
+  const totalPages = Math.ceil(totalClients / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedClients = currentClients.slice(startIndex, endIndex);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, sortBy, selectedPackages, activeTab]);
 
   const handleCreateSuccess = () => {
     setIsCreateDialogOpen(false);
@@ -169,6 +188,18 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     setClientToDelete(null);
   };
 
+  // Pagination handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    // Scroll to top when changing pages
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage);
+    setCurrentPage(1); // Reset to first page
+  };
+
   if (isLoading) {
     return (
       <div className="p-4 space-y-6 animate-pulse">
@@ -186,7 +217,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
       <div className="p-4 text-center text-destructive">
         Failed to load clients data. Please try again.
         <Button variant="outline" onClick={() => refetch(user.id, true)} className="ml-2">
-          <RefreshCw className="h-4 w-4 mr-2" />
+          <RefreshCw className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
           Retry
         </Button>
       </div>
@@ -199,7 +230,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div className="flex items-center gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="h-6 w-6 sm:h-8 sm:w-8" />
+            <Users className="h-6 w-6 sm:h-8 sm:w-8" style={{ pointerEvents: 'none' }} />
             Clients
           </h1>
           <Button
@@ -208,7 +239,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
             className="flex items-center justify-center gap-2"
             size="sm"
           >
-            <RefreshCw className="h-4 w-4" />
+            <RefreshCw className="h-4 w-4" style={{ pointerEvents: 'none' }} />
             Refresh
           </Button>
           <Button 
@@ -216,7 +247,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
             className="flex items-center justify-center gap-2"
             size="sm"
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" style={{ pointerEvents: 'none' }} />
             <span className="hidden sm:inline">Create Client</span>
             <span className="sm:hidden">Create</span>
           </Button>
@@ -228,7 +259,10 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
         <div className="grid grid-cols-1 gap-2 md:grid-cols-12">
           <div className="md:col-span-12">
             <div className="relative">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Search 
+                className="absolute left-3 top-3 h-4 w-4 text-gray-400" 
+                style={{ pointerEvents: 'none' }}
+              />
               <Input
                 placeholder="Search clients by name, email, or phone..."
                 value={searchQuery}
@@ -284,6 +318,18 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+
+          <Select value={itemsPerPage.toString()} onValueChange={(value) => handleItemsPerPageChange(parseInt(value))}>
+            <SelectTrigger className="w-full sm:w-[150px]">
+              <SelectValue placeholder="Per page" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5 per page</SelectItem>
+              <SelectItem value="10">10 per page</SelectItem>
+              <SelectItem value="20">20 per page</SelectItem>
+              <SelectItem value="50">50 per page</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 
@@ -292,20 +338,20 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="managed" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
+            <Users className="h-4 w-4" style={{ pointerEvents: 'none' }} />
             My Clients ({data?.managedClients.length || 0})
           </TabsTrigger>
           <TabsTrigger value="shared" className="flex items-center gap-2">
-            <Share2 className="h-4 w-4" />
+            <Share2 className="h-4 w-4" style={{ pointerEvents: 'none' }} />
             Clients Shared ({data?.sharedClients.length || 0})
           </TabsTrigger>
         </TabsList>
 
         <TabsContent value="managed" className="space-y-4">
-          {sortedManagedClients.length === 0 ? (
+          {totalClients === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <Users className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" style={{ pointerEvents: 'none' }} />
                 <h3 className="text-lg font-medium mb-2">
                   {searchQuery ? 'No clients found' : 'No clients yet'}
                 </h3>
@@ -317,34 +363,94 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
                 </p>
                 {!searchQuery && (
                   <Button onClick={() => setIsCreateDialogOpen(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
+                    <Plus className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
                     Add First Client
                   </Button>
                 )}
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4">
-              {sortedManagedClients.map((client) => (
-                <ClientPageCard
-                  key={client.id}
-                  client={client}
-                  onClick={() => handleClientClick(client)}
-                  showManaged={true}
-                  onCreateReminder={onCreateReminder}
-                  onCreateOrder={handleCreateOrder}
-                  onDelete={handleDeleteClient}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4">
+                {paginatedClients.map((client) => (
+                  <ClientPageCard
+                    key={client.id}
+                    client={client}
+                    onClick={() => handleClientClick(client)}
+                    showManaged={true}
+                    onCreateReminder={onCreateReminder}
+                    onCreateOrder={handleCreateOrder}
+                    onDelete={handleDeleteClient}
+                  />
+                ))}
+              </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1} to {Math.min(endIndex, totalClients)} of {totalClients} clients
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                      Previous
+                    </Button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(pageNum)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
 
         <TabsContent value="shared" className="space-y-4">
-          {sortedSharedClients.length === 0 ? (
+          {totalClients === 0 ? (
             <Card>
               <CardContent className="p-12 text-center">
-                <Share2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                <Share2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" style={{ pointerEvents: 'none' }} />
                 <h3 className="text-lg font-medium mb-2">
                   {searchQuery ? 'No shared clients found' : 'No shared clients'}
                 </h3>
@@ -357,19 +463,79 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4">
-              {sortedSharedClients.map((client) => (
-                <ClientPageCard
-                  key={client.id}
-                  client={client}
-                  onClick={() => handleClientClick(client)}
-                  showManaged={false}
-                  onCreateReminder={onCreateReminder}
-                  onCreateOrder={handleCreateOrder}
-                  onDelete={handleDeleteClient}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid gap-4">
+                {paginatedClients.map((client) => (
+                  <ClientPageCard
+                    key={client.id}
+                    client={client}
+                    onClick={() => handleClientClick(client)}
+                    showManaged={false}
+                    onCreateReminder={onCreateReminder}
+                    onCreateOrder={handleCreateOrder}
+                    onDelete={handleDeleteClient}
+                  />
+                ))}
+              </div>
+              
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4">
+                  <div className="text-sm text-muted-foreground">
+                    Showing {startIndex + 1} to {Math.min(endIndex, totalClients)} of {totalClients} clients
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                      Previous
+                    </Button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                        let pageNum;
+                        if (totalPages <= 5) {
+                          pageNum = i + 1;
+                        } else if (currentPage <= 3) {
+                          pageNum = i + 1;
+                        } else if (currentPage >= totalPages - 2) {
+                          pageNum = totalPages - 4 + i;
+                        } else {
+                          pageNum = currentPage - 2 + i;
+                        }
+                        
+                        return (
+                          <Button
+                            key={pageNum}
+                            variant={currentPage === pageNum ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => handlePageChange(pageNum)}
+                            className="w-8 h-8 p-0"
+                          >
+                            {pageNum}
+                          </Button>
+                        );
+                      })}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" style={{ pointerEvents: 'none' }} />
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </TabsContent>
       </Tabs>
@@ -405,7 +571,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <AlertTriangle className="h-5 w-5 text-destructive" style={{ pointerEvents: 'none' }} />
               Delete Client
             </DialogTitle>
           </DialogHeader>

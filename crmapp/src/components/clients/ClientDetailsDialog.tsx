@@ -63,19 +63,19 @@ const fetchClientDetails = async (userId: string, clientId: number): Promise<Cli
   return data[0] as ClientDetails;
 };
 
-const updateClient = async (clientData: any, adminId: string, clientId: number) => {
+const updateClient = async (clientData: { name: string; dob?: string; phone?: string; email?: string; issue?: string; notes?: string; package_id?: string; lifewave_id?: string; sponsor?: string }, adminId: string, clientId: number) => {
   const { data, error } = await supabase.rpc('update_client', {
     admin_uuid: adminId,
     client_id: clientId,
     client_name: clientData.name,
-    client_dob: clientData.dob || null,
-    client_phone: clientData.phone || null,
-    client_email: clientData.email || null,
-    client_issue: clientData.issue || null,
-    client_notes: clientData.notes || null,
+    client_dob: clientData.dob || undefined,
+    client_phone: clientData.phone || undefined,
+    client_email: clientData.email || undefined,
+    client_issue: clientData.issue || undefined,
+    client_notes: clientData.notes || undefined,
     client_package_id: clientData.package_id ? parseInt(clientData.package_id) : undefined,
     client_lifewave_id: clientData.lifewave_id ? parseInt(clientData.lifewave_id) : undefined,
-    client_sponsor: clientData.sponsor || null,
+    client_sponsor: clientData.sponsor || undefined,
   });
 
   if (error) {
@@ -207,9 +207,9 @@ export default function ClientDetailsDialog({
       setHasUnsavedChanges(false);
       setIsEditMode(false);
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update client:', error);
-      toast.error(error.message || 'Failed to update client. Please try again.');
+      toast.error(error instanceof Error ? error.message : 'Failed to update client. Please try again.');
     } finally {
       setIsSubmitting(false);
     }

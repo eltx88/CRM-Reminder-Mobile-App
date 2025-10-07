@@ -5,7 +5,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Calendar } from 'lucide-react';
 
 export type DateRangeType = 'thisMonth' | 'yearToDate' | 'last3Months' | 'last6Months' | 'today' | 'thisWeek' | 'custom';
 

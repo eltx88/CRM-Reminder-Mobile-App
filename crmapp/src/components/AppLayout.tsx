@@ -10,7 +10,6 @@ import {
   Users, 
   Bell, 
   LogOut, 
-  Plus,
   CalendarIcon,
   Settings,
   Package
@@ -25,7 +24,6 @@ interface AppLayoutProps {
 }
 
 export default function AppLayout({ 
-  user, 
   onLogout, 
   children, 
   activeTab, 
@@ -103,9 +101,19 @@ export default function AppLayout({
                     ? 'text-primary'
                     : 'text-muted-foreground hover:text-foreground'
                 }`}
+                style={{ 
+                  willChange: 'transform',
+                  transform: 'translateZ(0)' // Force hardware acceleration
+                }}
               >
                 <div className="relative">
-                  <Icon className="h-5 w-5 mb-1" />
+                  <Icon 
+                    className="h-5 w-5 mb-1" 
+                    style={{ 
+                      pointerEvents: 'none', // Prevent SVG pointer events
+                      willChange: 'auto'
+                    }}
+                  />
                   {badge !== null && badge > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                       {badge}
