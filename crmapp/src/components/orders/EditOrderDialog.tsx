@@ -23,10 +23,10 @@ const orderSchema = z.object({
     shipping_location: z.string().optional().transform(val => val || undefined),
     notes: z.string().optional().transform(val => val || undefined),
     order_items: z.array(z.object({
-      product_id: z.number().min(1, 'A product must be selected for all items.'),
+      product_id: z.number().min(1, 'Order Items cannot be empty'),
       quantity: z.number().min(1, 'Quantity must be at least 1.'),
       quantity_collected: z.number().min(0, 'Quantity collected cannot be negative.').optional(),
-    })).min(1, 'At least one order item is required.'),
+    })).min(1, 'Order items cannot be empty'),
     is_partially_collected: z.boolean().optional(),
     is_maintenance: z.boolean().optional(),
 });
@@ -404,6 +404,12 @@ export default function EditOrderDialog({
       return `Order Items: ${summary}`;
     })();
 
+    // Check for empty order items first
+    if (!formData.order_items || formData.order_items.length === 0) {
+      setError('Order items cannot be empty');
+      return;
+    }
+
     // 3. Validate form data with Zod
     const validationResult = orderSchema.safeParse({
       ...formData
@@ -411,7 +417,8 @@ export default function EditOrderDialog({
 
     if (!validationResult.success) {
       // If validation fails, show the first error message
-      setError(validationResult.error.message);
+      const firstError = validationResult.error.issues[0];
+      setError(firstError.message);
       return;
     }
 

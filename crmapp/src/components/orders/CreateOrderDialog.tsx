@@ -26,7 +26,7 @@ const orderSchema = z.object({
     order_items: z.array(z.object({
       product_id: z.number().min(1, 'A product must be selected for all items.'),
       quantity: z.number().min(1, 'Quantity must be at least 1.'),
-    })).min(1, 'At least one order item is required.'),
+    })).min(1, 'Order items cannot be empty'),
   });
   
 type orderFormData = z.infer<typeof orderSchema>;
@@ -337,6 +337,12 @@ export default function CreateOrderDialog({
       return `Order Items: ${itemsSummary}`;
     })();
 
+    // Check for empty order items first
+    if (!formData.order_items || formData.order_items.length === 0) {
+      setError('Order items cannot be empty');
+      return;
+    }
+
     const validationResult = orderSchema.safeParse({
       ...formData,
       client_id: selectedClient ? selectedClient.client_id.toString() : ''
@@ -344,7 +350,8 @@ export default function CreateOrderDialog({
 
     if (!validationResult.success) {
       // If validation fails, show the first error message
-      setError(validationResult.error.message);
+      const firstError = validationResult.error.issues[0];
+      setError(firstError.message);
       return;
     }
 
