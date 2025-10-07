@@ -1,4 +1,5 @@
 import { Button } from "./ui/button";
+import Image from "next/image";
 
 const formatPhoneForWhatsApp = (phone: string) => {
     // Remove all non-digit characters
@@ -21,7 +22,9 @@ const formatPhoneForWhatsApp = (phone: string) => {
                       onClick={handleWhatsAppClick}
                       className="ml-2"
                     >
-                        <img
+                        <Image
+                        width={20}
+                        height={20}
                         src="whatsapp.svg"
                         alt="WhatsApp"
                         className="h-5 w-5 hover:cursor-pointer"
