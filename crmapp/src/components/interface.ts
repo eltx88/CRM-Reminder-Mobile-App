@@ -105,9 +105,7 @@ export interface Client {
     package_name?: string | null;
   }
   
-  export interface UpdateClientResponse extends CreateClientResponse {
-    // Inherits all properties from CreateClientResponse
-  }
+  export type UpdateClientResponse = CreateClientResponse
   
   export interface PackagesResponse extends BaseRPCResponse {
     packages: Package[];

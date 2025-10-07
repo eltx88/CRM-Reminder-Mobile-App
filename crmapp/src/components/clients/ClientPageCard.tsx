@@ -53,7 +53,6 @@ const getPackageColor = (packageName: string | null | undefined) => {
 export default function ClientPageCard({ 
   client, 
   onClick, 
-  showManaged, 
   onCreateReminder, 
   onCreateOrder, 
   onDelete 
@@ -66,22 +65,7 @@ export default function ClientPageCard({
     });
   };
 
-  const formatPhoneForWhatsApp = (phone: string) => {
-    // Remove all non-digit characters
-    const digitsOnly = phone.replace(/\D/g, '');
-    
-    // Return as is if it doesn't match common patterns
-    return digitsOnly;
-  };
 
-  const handleWhatsAppClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (client.phone) {
-      const formattedPhone = formatPhoneForWhatsApp(client.phone);
-      const whatsappUrl = `https://wa.me/${formattedPhone}`;
-      window.open(whatsappUrl, '_blank');
-    }
-  };
 
   const handleCreateReminder = (e: React.MouseEvent) => {
     e.stopPropagation(); 

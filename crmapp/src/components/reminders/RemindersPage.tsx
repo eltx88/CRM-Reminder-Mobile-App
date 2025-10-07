@@ -42,14 +42,6 @@ interface RemindersPageProps {
 }
 
 
-// Format phone for WhatsApp
-const formatPhoneForWhatsApp = (phone: string): string => {
-  const cleaned = phone.replace(/\D/g, '');
-  if (cleaned.length === 8 && !cleaned.startsWith('65')) {
-    return '65' + cleaned;
-  }
-  return cleaned;
-};
 
 export default function RemindersPage({ user, createDialogOpen = false, onCreateDialogChange, createSeed }: RemindersPageProps) {
     const [reminders, setReminders] = useState<Reminder[]>([]);
@@ -59,7 +51,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     // Filter and search states
     const [searchTerm, setSearchTerm] = useState('');
     const [reminderTypeFilter, setReminderTypeFilter] = useState<ReminderTypeFilter>('ALL');
-    const [sortBy, setSortBy] = useState<ReminderSortBy>('trigger_date');
+    const [sortBy] = useState<ReminderSortBy>('trigger_date');
     const [sortOrder, setSortOrder] = useState<SortOrder>('ASC');
     
     // Date range state - initialize with today
@@ -148,7 +140,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
       refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, value, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, 1, itemsPerPage, true);
     }
     // For client-side, filtering happens in useMemo below
-  }, [useServerSidePagination, user.id, reminderTypeFilter, sortBy, sortOrder, refetch, invalidateCache, itemsPerPage]);
+  }, [useServerSidePagination, user.id, reminderTypeFilter, sortBy, sortOrder, refetch, invalidateCache, itemsPerPage, dateRange.startDate, dateRange.endDate]);
 
 
   // Initial load (guard for strict mode double call)
@@ -158,7 +150,7 @@ export default function RemindersPage({ user, createDialogOpen = false, onCreate
     }
     hasFetchedRef.current = true;
     refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage);
-  }, [refetch, user.id, searchTerm, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage]);
+  }, [refetch, user.id, searchTerm, reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, dateRange.startDate, dateRange.endDate]);
 
   const handleRefresh = useCallback(() => {
     refetch(user.id, dateRange.startDate || undefined, dateRange.endDate || undefined, searchTerm, reminderTypeFilter === 'ALL' ? undefined : reminderTypeFilter, sortBy, sortOrder, currentPage, itemsPerPage, true);

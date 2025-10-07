@@ -58,7 +58,7 @@ function AppContent() {
     setActiveView(tab as View);
   };
 
-  const handleClientClick = (_clientId: number) => {
+  const handleClientClick = () => {
     setActiveView('client-detail');
   };
 

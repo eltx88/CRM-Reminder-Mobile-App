@@ -151,21 +151,6 @@ export default function EditReminderDialog({
     setFormData(prev => ({ ...prev, message: '' }));
   };
 
-  // Get minimum date (today for new reminders, any date for existing)
-  const getMinDate = (): string => {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
-  };
-
-  // Format date for display
-  const formatDisplayDate = (dateString: string): string => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-SG', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-  };
 
   // Get status badge color
   const getStatusBadgeClass = (status: string) => {

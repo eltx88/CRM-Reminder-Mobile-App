@@ -109,12 +109,8 @@ export default function AppLayout({
                 <div className="relative">
                   <Icon 
                     className="h-5 w-5 mb-1" 
-                    style={{ 
-                      pointerEvents: 'none', // Prevent SVG pointer events
-                      willChange: 'auto'
-                    }}
                   />
-                  {badge !== null && badge > 0 && (
+                  {badge !== null && badge !== undefined && badge > 0 && (
                     <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-medium">
                       {badge}
                     </span>
