@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { User } from '@supabase/supabase-js';
+import HCaptchaComponent, { HCaptchaRef } from '@/components/HCaptcha';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -19,6 +20,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const captchaRef = useRef<HCaptchaRef>(null);
+
+  // Replace with your actual hCaptcha site key from hCaptcha dashboard
+  const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
 
   useEffect(() => {
     // Check if user is already logged in
@@ -31,11 +37,32 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     checkUser();
   }, [onLogin]);
 
+  const handleCaptchaVerify = (token: string) => {
+    setCaptchaToken(token);
+    setError('');
+  };
+
+  const handleCaptchaExpire = () => {
+    setCaptchaToken(null);
+  };
+
+  const handleCaptchaError = (error: string) => {
+    setCaptchaToken(null);
+    setError('Captcha verification failed. Please try again.');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     setMessage('');
+
+    // Check if captcha is completed
+    if (!captchaToken) {
+      setError('Please complete the captcha verification.');
+      setLoading(false);
+      return;
+    }
 
     try {
       if (isSignUp) {
@@ -44,6 +71,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           email,
           password,
           options: {
+            captchaToken,
             data: {
               name: fullName,
             },
@@ -51,6 +79,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         });
         if (error) {
           setError(error.message);
+          captchaRef.current?.reset();
+          setCaptchaToken(null);
         } else {
           setMessage('Sign up successful! Please check your email for the confirmation link.');
         }
@@ -59,15 +89,22 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
         const { data, error } = await supabase.auth.signInWithPassword({
           email,
           password,
+          options: {
+            captchaToken,
+          },
         });
         if (error) {
           setError(error.message);
+          captchaRef.current?.reset();
+          setCaptchaToken(null);
         } else if (data.user) {
           onLogin(data.user);
         }
       }
     } catch {
       setError('An unexpected error occurred. Please try again.');
+      captchaRef.current?.reset();
+      setCaptchaToken(null);
     } finally {
       setLoading(false);
     }
@@ -121,6 +158,19 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 required
               />
             </div>
+            <div className="space-y-2">
+              <Label>Security Verification</Label>
+              <HCaptchaComponent
+                ref={captchaRef}
+                siteKey={HCAPTCHA_SITE_KEY || ''}
+                onVerify={handleCaptchaVerify}
+                onExpire={handleCaptchaExpire}
+                onError={handleCaptchaError}
+                theme="light"
+                size="normal"
+                className="flex justify-center"
+              />
+            </div>
             {error && (
               <Alert variant="destructive">
                 <AlertDescription>{error}</AlertDescription>
@@ -149,6 +199,8 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
                 setIsSignUp(!isSignUp);
                 setError('');
                 setMessage('');
+                setCaptchaToken(null);
+                captchaRef.current?.reset();
               }}
             >
               {isSignUp ? 'Login' : 'Sign Up'}

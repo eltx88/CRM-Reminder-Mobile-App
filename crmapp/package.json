@@ -10,6 +10,7 @@
     "update:supabase": "npx supabase gen types typescript --project-id hekotclwwphsjkpbzfji > src/supabase/types.ts"
   },
   "dependencies": {
+    "@hcaptcha/react-hcaptcha": "^1.12.1",
     "@hookform/resolvers": "^5.2.2",
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.1.10",

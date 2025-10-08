@@ -1,10 +1,20 @@
 "use client";
 
-import { useMemo, useCallback } from 'react';
+import { useMemo, useCallback, useState } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import { Button } from '@/components/ui/button';
 import { useData } from '@/contexts/DataContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { 
   LayoutDashboard, 
   Users, 
@@ -30,11 +40,21 @@ export default function AppLayout({
   onTabChange 
 }: AppLayoutProps) {
   const { dashboardData } = useData();
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
   
-  const handleLogout = useCallback(async () => {
+  const handleLogoutClick = useCallback(() => {
+    setShowLogoutDialog(true);
+  }, []);
+
+  const handleLogoutConfirm = useCallback(async () => {
     await supabase.auth.signOut();
     onLogout();
+    setShowLogoutDialog(false);
   }, [onLogout]);
+
+  const handleLogoutCancel = useCallback(() => {
+    setShowLogoutDialog(false);
+  }, []);
 
   // Memoize reminders count to prevent unnecessary recalculations
   const remindersCount = useMemo(() => {
@@ -74,7 +94,7 @@ export default function AppLayout({
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={handleLogout}
+            onClick={handleLogoutClick}
             aria-label="Logout"
           >
             <LogOut className="h-5 w-5" />
@@ -125,6 +145,29 @@ export default function AppLayout({
           })}
         </div>
       </nav>
+
+      {/* Logout Confirmation Dialog */}
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to log out?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={handleLogoutCancel}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleLogoutConfirm}
+              className="bg-destructive text-destructive-foreground text-white cursor-pointer hover:bg-destructive/90"
+            >
+              Logout
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
