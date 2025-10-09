@@ -105,6 +105,9 @@ export default function EditOrderDialog({
   });
   const [products, setProducts] = useState<Product[]>([]);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
+  const [showPaymentRequiredDialog, setShowPaymentRequiredDialog] = useState(false);
+  const [highlightPaymentFields, setHighlightPaymentFields] = useState(false);
   const initialFormRef = useRef<orderFormData | null>(null);
 
   const [formData, setFormData] = useState<orderFormData>({
@@ -469,6 +472,70 @@ export default function EditOrderDialog({
 
   const totalPoints = calculateTotalPoints();
 
+  // Check if payment details are required for order completion
+  const isPaymentDetailsComplete = () => {
+    return formData.payment_mode && formData.payment_mode.trim() !== '' && 
+           formData.payment_date && formData.payment_date.trim() !== '';
+  };
+
+  // Handle order completion with validation
+  const handleOrderCompletion = () => {
+    if (!isPaymentDetailsComplete()) {
+      setShowPaymentRequiredDialog(true);
+      return;
+    }
+    
+    // Fill all collected quantities to max
+    const updatedItems = formData.order_items.map(item => ({
+      ...item,
+      quantity_collected: item.quantity
+    }));
+    
+    // Set collection date to today
+    const today = new Date().toISOString().split('T')[0];
+    
+    setFormData(prev => ({
+      ...prev,
+      order_items: updatedItems,
+      collection_date: today,
+      is_partially_collected: false
+    }));
+    
+    // Show completion confirmation dialog
+    setShowCompletionDialog(true);
+  };
+
+  // Scroll to and highlight payment fields
+  const scrollToAndHighlightPaymentFields = () => {
+    // Expand payment fields
+    setExpandedFields(prev => ({
+      ...prev,
+      payment_mode: true,
+      payment_date: true
+    }));
+
+    // Wait for fields to expand, then scroll and highlight
+    setTimeout(() => {
+      // Find the payment mode field container
+      const paymentModeField = document.querySelector('[data-field="payment_mode"]');
+      if (paymentModeField) {
+        // Scroll to the payment fields section
+        paymentModeField.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+        
+        // Highlight the fields
+        setHighlightPaymentFields(true);
+        
+        // Remove highlight after 3 seconds
+        setTimeout(() => {
+          setHighlightPaymentFields(false);
+        }, 3000);
+      }
+    }, 100);
+  };
+
   // Auto-calculate expiry date when order items or enrollment date changes (only if not manually edited)
   useEffect(() => {
     if (!isExpiryDateManuallyEdited) {
@@ -561,54 +628,36 @@ export default function EditOrderDialog({
               <Label htmlFor="partially-collected">Partially Collected</Label>
             </div>
             
-            {/* Order Completed Button */}
-            {formData.is_partially_collected && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="text-green-600 border-gray-200 hover:bg-green-50"
+            {/* Order Completed Button - Always visible */}
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="text-green-600 border-gray-200 hover:bg-green-50"
+                >
+                  Order Completed
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Complete Order</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will mark all items as fully collected and mark the order as completed. 
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleOrderCompletion}
+                    className="bg-green-600 hover:bg-green-700"
                   >
-                    Order Completed
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Complete Order</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will mark all items as fully collected and mark the order as completed. 
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => {
-                        // Fill all collected quantities to max
-                        const updatedItems = formData.order_items.map(item => ({
-                          ...item,
-                          quantity_collected: item.quantity
-                        }));
-                        
-                        // Set collection date to today
-                        const today = new Date().toISOString().split('T')[0];
-                        
-                        setFormData(prev => ({
-                          ...prev,
-                          order_items: updatedItems,
-                          collection_date: today,
-                          is_partially_collected: false
-                        }));
-                      }}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      Complete Order
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+                    Complete Order
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
 
           {/* Maintenance Order Checkbox */}
@@ -847,7 +896,12 @@ export default function EditOrderDialog({
           {/* Individual Optional Fields */}
           <div className="space-y-4">
             {/* Payment Mode */}
-            <div className="border rounded-lg p-3">
+            <div 
+              data-field="payment_mode"
+              className={`border rounded-lg p-3 transition-all duration-300 ${
+                highlightPaymentFields ? 'ring-2 ring-red-500 bg-red-50' : ''
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => toggleField('payment_mode')}
@@ -866,7 +920,7 @@ export default function EditOrderDialog({
                   <Label htmlFor="payment_mode">Payment Mode</Label>
                   <Input
                     id="payment_mode"
-                    className="mt-2"
+                    className={`mt-2 ${highlightPaymentFields ? 'ring-2 ring-red-500 border-red-500' : ''}`}
                     value={formData.payment_mode}
                     onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
                     placeholder="e.g., Credit Card, Cash"
@@ -934,7 +988,12 @@ export default function EditOrderDialog({
             </div>
 
             {/* Payment Date */}
-            <div className="border rounded-lg p-3">
+            <div 
+              data-field="payment_date"
+              className={`border rounded-lg p-3 transition-all duration-300 ${
+                highlightPaymentFields ? 'ring-2 ring-red-500 bg-red-50' : ''
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => toggleField('payment_date')}
@@ -954,7 +1013,7 @@ export default function EditOrderDialog({
                   <Input
                     id="payment_date"
                     type="date"
-                    className="mt-2"
+                    className={`mt-2 ${highlightPaymentFields ? 'ring-2 ring-red-500 border-red-500' : ''}`}
                     value={formData.payment_date}
                     onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
                   />
@@ -1025,6 +1084,58 @@ export default function EditOrderDialog({
           </form>
         </div>
       </DialogContent>
+
+      {/* Payment Required Dialog */}
+      <AlertDialog open={showPaymentRequiredDialog} onOpenChange={setShowPaymentRequiredDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-red-600">Payment Details Required</AlertDialogTitle>
+            <AlertDialogDescription>
+              To complete this order, please provide both Payment Mode and Payment Date. 
+              These fields are required for order completion.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => {
+                setShowPaymentRequiredDialog(false);
+                scrollToAndHighlightPaymentFields();
+              }}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Fill Payment Details
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Order Completion Confirmation Dialog */}
+      <AlertDialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-green-600">Order Marked as Complete</AlertDialogTitle>
+            <AlertDialogDescription>
+              The order has been successfully marked as complete. All items are now marked as fully collected.
+              The order will now be updated automatically.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => {
+                setShowCompletionDialog(false);
+                // Automatically submit the form
+                const form = document.querySelector('form');
+                if (form) {
+                  form.requestSubmit();
+                }
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Update Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

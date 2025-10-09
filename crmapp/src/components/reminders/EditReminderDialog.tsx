@@ -181,7 +181,7 @@ export default function EditReminderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-[95vw] max-w-[500px] max-h-[90vh] overflow-y-auto sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Edit className="h-5 w-5" />
@@ -318,18 +318,20 @@ export default function EditReminderDialog({
           )}
 
           {/* Actions */}
-          <div className="flex justify-end gap-2 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row sm:justify-end gap-2 pt-4 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={() => onOpenChange(false)}
               disabled={loading}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
               disabled={loading || !formData.message.trim() || !hasUnsavedChanges}
+              className="w-full sm:w-auto"
             >
               {loading ? (
                 <>
