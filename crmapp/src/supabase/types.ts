@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -18,14 +18,17 @@ export type Database = {
         Row: {
           id: string
           name: string | null
+          username: string
         }
         Insert: {
           id: string
           name?: string | null
+          username?: string
         }
         Update: {
           id?: string
           name?: string | null
+          username?: string
         }
         Relationships: []
       }
@@ -128,6 +131,7 @@ export type Database = {
           dob: string | null
           email: string | null
           id: number
+          is_active: boolean
           issue: string | null
           lifewave_id: number | null
           name: string
@@ -142,6 +146,7 @@ export type Database = {
           dob?: string | null
           email?: string | null
           id?: number
+          is_active?: boolean
           issue?: string | null
           lifewave_id?: number | null
           name: string
@@ -156,6 +161,7 @@ export type Database = {
           dob?: string | null
           email?: string | null
           id?: number
+          is_active?: boolean
           issue?: string | null
           lifewave_id?: number | null
           name?: string
@@ -225,6 +231,8 @@ export type Database = {
           client_id: number
           collection_date: string | null
           collection_status: string
+          enroller_id: number | null
+          enroller_name: string | null
           enrollment_date: string
           expiry_date: string
           id: number
@@ -241,6 +249,8 @@ export type Database = {
           client_id: number
           collection_date?: string | null
           collection_status?: string
+          enroller_id?: number | null
+          enroller_name?: string | null
           enrollment_date?: string
           expiry_date: string
           id?: number
@@ -257,6 +267,8 @@ export type Database = {
           client_id?: number
           collection_date?: string | null
           collection_status?: string
+          enroller_id?: number | null
+          enroller_name?: string | null
           enrollment_date?: string
           expiry_date?: string
           id?: number
@@ -371,6 +383,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_username_availability: {
+        Args: { username_to_check: string }
+        Returns: boolean
+      }
+      create_admin_with_username: {
+        Args: { admin_id: string; admin_name: string; admin_username: string }
+        Returns: boolean
+      }
       create_client: {
         Args: {
           admin_uuid: string
@@ -400,6 +420,8 @@ export type Database = {
           admin_uuid: string
           client_id_param: number
           collection_date_param?: string
+          enroller_id_param?: number
+          enroller_name_param?: string
           enrollment_date_param: string
           expiry_date_param: string
           is_maintenance_param?: boolean
@@ -445,6 +467,8 @@ export type Database = {
         Returns: {
           collection_date: string
           collection_status: string
+          enroller_id: number | null
+          enroller_name: string | null
           enrollment_date: string
           expiry_date: string
           is_maintenance: boolean
@@ -504,6 +528,8 @@ export type Database = {
           client_name: string
           collection_date: string
           collection_status: string
+          enroller_id: number | null
+          enroller_name: string | null
           enrollment_date: string
           expiry_date: string
           is_maintenance: boolean
@@ -538,6 +564,8 @@ export type Database = {
           client_name: string
           collection_date: string
           collection_status: string
+          enroller_id: number | null
+          enroller_name: string | null
           enrollment_date: string
           expiry_date: string
           is_maintenance: boolean
@@ -621,6 +649,14 @@ export type Database = {
           trigger_date: string
         }[]
       }
+      get_user_by_username: {
+        Args: { username_input: string }
+        Returns: {
+          user_exists: boolean
+          user_id: string
+          username: string
+        }[]
+      }
       mark_reminder_completed: {
         Args: { admin_uuid: string; p_reminder_id: number }
         Returns: Json
@@ -645,6 +681,8 @@ export type Database = {
         Args: {
           admin_uuid: string
           collection_date_param?: string
+          enroller_id_param?: number
+          enroller_name_param?: string
           enrollment_date_param: string
           expiry_date_param: string
           is_maintenance_param?: boolean

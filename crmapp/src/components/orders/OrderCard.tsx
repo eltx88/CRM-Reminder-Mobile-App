@@ -119,11 +119,23 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600 mb-2">
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Enrolled: {new Date(order.enrollment_date).toLocaleDateString()}</span>
+                <span className="truncate">Order Date: {new Date(order.enrollment_date).toLocaleDateString()}</span>
                 <Clock className="h-4 w-4 flex-shrink-0 ml-2" />
                 <span className="truncate">Expires: {new Date(order.expiry_date).toLocaleDateString()}</span>
               </div>
             </div>
+
+            {/* Enroller Information - Prominent Display */}
+            {(order.enroller_name || order.enroller_id) && (
+              <div className="flex items-center gap-2 text-sm text-blue-600 mb-2">
+                <User className="h-4 w-4 flex-shrink-0" />
+                <span className="font-medium">Enroller:</span>
+                <span className="truncate">
+                  {order.enroller_name || `ID: ${order.enroller_id}`}
+                  {order.enroller_name && order.enroller_id && ` (ID: ${order.enroller_id})`}
+                </span>
+              </div>
+            )}
           </div>
         </div>
             

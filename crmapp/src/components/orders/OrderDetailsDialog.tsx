@@ -122,7 +122,7 @@ export default function OrderDetailsDialog({
               <div className="space-y-2 text-sm text-gray-600">
                 <div className="flex items-center gap-2">
                   <Calendar className="h-4 w-4 text-gray-400" />
-                  <span>Enrollment: {formatDate(order.enrollment_date)}</span>
+                  <span>Order Created Date: {formatDate(order.enrollment_date)}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Clock className="h-4 w-4 text-gray-400" />
@@ -141,18 +141,24 @@ export default function OrderDetailsDialog({
                 Payment & Delivery
               </h3>
               <div className="space-y-2 text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-gray-400" />
-                  <span>Payment Date: {formatDate(order.payment_date)}</span>
-                </div>
+                {order.enroller_name && (
+                  <div className="flex items-center gap-2">
+                    <User className="h-4 w-4 text-gray-400" />
+                    <span>Enroller: {order.enroller_name}{order.enroller_id && ` (ID: ${order.enroller_id})`}</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-gray-400" />
-                  <span>Mode: {order.payment_mode || '—'}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <MapPin className="h-4 w-4 text-gray-400" />
-                  <span>Shipping: {order.shipping_location || '—'}</span>
-                </div>
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span>Payment Date: {formatDate(order.payment_date)}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-gray-400" />
+                    <span>Mode: {order.payment_mode || '—'}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-gray-400" />
+                    <span>Shipping: {order.shipping_location || '—'}</span>
+                  </div>
               </div>
             </div>
           </section>

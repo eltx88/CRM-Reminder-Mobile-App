@@ -27,6 +27,8 @@ const orderSchema = z.object({
       product_id: z.number().min(1, 'A product must be selected for all items.'),
       quantity: z.number().min(1, 'Quantity must be at least 1.'),
     })).min(1, 'Order items cannot be empty'),
+    enroller_id: z.number().optional().transform(val => val || undefined),
+    enroller_name: z.string().optional().transform(val => val || undefined),
   });
   
 type orderFormData = z.infer<typeof orderSchema>;
@@ -87,6 +89,8 @@ export default function CreateOrderDialog({
         shipping_location: '',
         notes: '',
         order_items: [{ product_id: 0, quantity: 1 }],
+        enroller_id: 0,
+        enroller_name: '',
     });
 
   const loadClients = useCallback(async () => {
@@ -212,6 +216,8 @@ export default function CreateOrderDialog({
       shipping_location: '',
       notes: '',
       order_items: [{ product_id: 0, quantity: 1 }],
+      enroller_id: 0,
+      enroller_name: '',
     });
     setSelectedClient(null);
     setClientSearchTerm('');
@@ -377,6 +383,8 @@ export default function CreateOrderDialog({
         notes_param: validatedData.notes,
         order_items_text_param: orderItemsText ?? undefined,
         is_maintenance_param: isMaintenanceOrder,
+        enroller_id_param: validatedData.enroller_id,
+        enroller_name_param: validatedData.enroller_name,
       });
 
       if (rpcError) throw rpcError;
@@ -534,6 +542,32 @@ export default function CreateOrderDialog({
                 onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
                 className="mt-2"
             />
+        </div>
+
+        {/* Enroller Information */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+                <Label htmlFor="enroller_id">Enroller ID</Label>
+                <Input
+                    id="enroller_id"
+                    type="number"
+                    placeholder="Enter enroller ID..."
+                    value={formData.enroller_id || ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : undefined }))}
+                    className="mt-2"
+                />
+            </div>
+            <div>
+                <Label htmlFor="enroller_name">Enroller Name</Label>
+                <Input
+                    id="enroller_name"
+                    type="text"
+                    placeholder="Enter enroller name..."
+                    value={formData.enroller_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, enroller_name: e.target.value }))}
+                    className="mt-2"
+                />
+            </div>
         </div>
 
         {/* Order Items */}

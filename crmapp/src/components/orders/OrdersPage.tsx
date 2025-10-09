@@ -86,6 +86,8 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       can_edit: !order.is_shared,
       is_partially_collected: order.is_partially_collected || false,
       collection_status: order.collection_status || 'not_started',
+      enroller_id: order.enroller_id || null,
+      enroller_name: order.enroller_name || null,
     }));
   }, [ordersData]);
 
@@ -202,7 +204,8 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       if (searchTerm) {
         orders = orders.filter(order =>
           order.client_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase()))
+          (order.order_number && order.order_number.toLowerCase().includes(searchTerm.toLowerCase())) ||
+          (order.enroller_name && order.enroller_name.toLowerCase().includes(searchTerm.toLowerCase()))
         );
       }
     }
@@ -293,7 +296,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
             <div className="relative">
               <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
               <Input
-                placeholder="Search clients or order numbers..."
+                placeholder="Search clients, order numbers, or enroller names..."
                 value={searchTerm}
                 onChange={(e) => handleSearchChange(e.target.value)}
                 className="pl-10 w-full"

@@ -63,6 +63,8 @@ export interface Client {
     is_partially_collected: boolean;
     collection_status: string;
     is_maintenance: boolean;
+    enroller_id: number | null;
+    enroller_name: string | null;
   }
   
   /**

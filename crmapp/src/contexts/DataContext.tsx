@@ -241,7 +241,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
         is_shared: row.is_shared,
         is_partially_collected: row.is_partially_collected || false,
         collection_status: row.collection_status || 'not_started',
-        is_maintenance: row.is_maintenance || false
+        is_maintenance: row.is_maintenance || false,
+        enroller_id: row.enroller_id || null,
+        enroller_name: row.enroller_name || null
       })) || [];
 
       const paginatedResponse: PaginatedOrdersResponse = {

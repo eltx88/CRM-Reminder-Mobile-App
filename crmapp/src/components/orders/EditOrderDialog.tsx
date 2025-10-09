@@ -29,6 +29,8 @@ const orderSchema = z.object({
     })).min(1, 'Order items cannot be empty'),
     is_partially_collected: z.boolean().optional(),
     is_maintenance: z.boolean().optional(),
+    enroller_id: z.number().optional().transform(val => val || undefined),
+    enroller_name: z.string().optional().transform(val => val || undefined),
 });
 
 type orderFormData = z.infer<typeof orderSchema>;
@@ -52,7 +54,9 @@ const areOrderFormsEqual = (a: orderFormData, b: orderFormData): boolean => {
     a.notes !== b.notes ||
     a.order_items.length !== b.order_items.length ||
     a.is_partially_collected !== b.is_partially_collected ||
-    a.is_maintenance !== b.is_maintenance
+    a.is_maintenance !== b.is_maintenance ||
+    a.enroller_id !== b.enroller_id ||
+    a.enroller_name !== b.enroller_name
   ) {
     return false;
   }
@@ -108,6 +112,7 @@ export default function EditOrderDialog({
   const [showCompletionDialog, setShowCompletionDialog] = useState(false);
   const [showPaymentRequiredDialog, setShowPaymentRequiredDialog] = useState(false);
   const [highlightPaymentFields, setHighlightPaymentFields] = useState(false);
+  const [isCompletingOrder, setIsCompletingOrder] = useState(false);
   const initialFormRef = useRef<orderFormData | null>(null);
 
   const [formData, setFormData] = useState<orderFormData>({
@@ -122,6 +127,8 @@ export default function EditOrderDialog({
     order_items: [{ product_id: 0, quantity: 1, quantity_collected: 0 }],
     is_partially_collected: false,
     is_maintenance: false,
+    enroller_id: 0,
+    enroller_name: '',
   });
 
   const populateForm = useCallback(async () => {
@@ -219,6 +226,8 @@ export default function EditOrderDialog({
       })),
       is_partially_collected: order.is_partially_collected || false,
       is_maintenance: order.is_maintenance || false,
+      enroller_id: orderDetails.enroller_id || undefined,
+      enroller_name: orderDetails.enroller_name || '',
     };
 
     const clonedForm = cloneOrderFormData(nextFormData);
@@ -442,14 +451,16 @@ export default function EditOrderDialog({
           quantity: item.quantity
         })),
         order_items_text_param: orderItemsText ?? undefined,
-        is_partially_collected_param: validatedData.is_partially_collected,
+        is_partially_collected_param: isCompletingOrder ? false : validatedData.is_partially_collected,
         item_collections_param: validatedData.order_items
           .filter(item => item.product_id !== 0)
           .map(item => ({
             product_id: item.product_id,
             quantity_collected: item.quantity_collected || 0
           })),
-        is_maintenance_param: validatedData.is_maintenance
+        is_maintenance_param: validatedData.is_maintenance,
+        enroller_id_param: validatedData.enroller_id,
+        enroller_name_param: validatedData.enroller_name
       });
 
       if (rpcError) throw rpcError;
@@ -457,6 +468,7 @@ export default function EditOrderDialog({
       if (data === true) {
         initialFormRef.current = cloneOrderFormData(formData);
         setHasUnsavedChanges(false);
+        setIsCompletingOrder(false);  // Reset completion flag
         onSuccess();
         onOpenChange(false);
       } else {
@@ -465,6 +477,7 @@ export default function EditOrderDialog({
     } catch (err) {
       console.error('Error updating order:', err);
       setError(err instanceof Error ? err.message : 'Failed to update order');
+      setIsCompletingOrder(false);  // Reset completion flag on error
     } finally {
       setLoading(false);
     }
@@ -498,8 +511,11 @@ export default function EditOrderDialog({
       ...prev,
       order_items: updatedItems,
       collection_date: today,
-      is_partially_collected: false
+      is_partially_collected: true  // Set to true so RPC updates quantity_collected
     }));
+    
+    // Mark that we're completing the order
+    setIsCompletingOrder(true);
     
     // Show completion confirmation dialog
     setShowCompletionDialog(true);
@@ -615,6 +631,32 @@ export default function EditOrderDialog({
               onChange={(e) => setFormData(prev => ({ ...prev, order_number: e.target.value }))}
               className="mt-2"
             />
+          </div>
+
+          {/* Enroller Information */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="enroller_id">Enroller ID</Label>
+              <Input
+                id="enroller_id"
+                type="number"
+                placeholder="Enter enroller ID..."
+                value={formData.enroller_id || ''}
+                onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : undefined }))}
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="enroller_name">Enroller Name</Label>
+              <Input
+                id="enroller_name"
+                type="text"
+                placeholder="Enter enroller name..."
+                value={formData.enroller_name}
+                onChange={(e) => setFormData(prev => ({ ...prev, enroller_name: e.target.value }))}
+                className="mt-2"
+              />
+            </div>
           </div>
 
           {/* Partially Collected Checkbox */}
