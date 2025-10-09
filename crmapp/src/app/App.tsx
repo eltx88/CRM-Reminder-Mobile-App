@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { User } from '@supabase/supabase-js';
 import { supabase } from '@/supabase/client';
 import LoginPage from '@/components/LoginPage'; 
+import ResetPasswordPage from '@/components/ResetPasswordPage';
 import AppLayout from '@/components/AppLayout'; 
 import DashboardPage from '@/components/dashboard/Dashboard';
 import ClientsPage from '@/components/clients/ClientsPage';
@@ -22,6 +23,7 @@ function AppContent() {
   const [activeView, setActiveView] = useState<View>('dashboard');
   const [createReminderOpen, setCreateReminderOpen] = useState(false);
   const [createReminderSeed, setCreateReminderSeed] = useState<{ clientId: number; clientName: string } | null>(null);
+  const [isResetPassword, setIsResetPassword] = useState(false);
 
   useEffect(() => {
     const checkUser = async () => {
@@ -30,7 +32,25 @@ function AppContent() {
       setLoading(false);
     };
 
+    // Check if we're on the reset password page
+    const checkResetPassword = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const accessToken = urlParams.get('access_token');
+      const refreshToken = urlParams.get('refresh_token');
+      const type = urlParams.get('type');
+      
+      if (type === 'recovery' && accessToken && refreshToken) {
+        setIsResetPassword(true);
+        // Set the session with the tokens from the URL
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken
+        });
+      }
+    };
+
     checkUser();
+    checkResetPassword();
 
     // Listen for auth changes (login/logout)
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -41,6 +61,9 @@ function AppContent() {
   }, []);
 
   if (!user) {
+    if (isResetPassword) {
+      return <ResetPasswordPage onLogin={(loggedInUser: User) => setUser(loggedInUser)} />;
+    }
     return <LoginPage onLogin={(loggedInUser: User) => setUser(loggedInUser)} />;
   }
 

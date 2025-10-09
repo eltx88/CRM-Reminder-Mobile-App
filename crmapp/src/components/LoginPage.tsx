@@ -6,8 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { User } from '@supabase/supabase-js';
-import HCaptchaComponent, { HCaptchaRef } from '@/components/HCaptcha';
-import { validateUsername, isEmail, getUserByUsername, loginWithUsername, createAdminWithUsername } from '@/utils/rpcUsernameValidation';
+import { validateUsername, isEmail, loginWithUsername, createAdminWithUsername } from '@/utils/rpcUsernameValidation';
+import { HCaptchaRef } from './HCaptcha';
+import HCaptchaComponent from './HCaptcha';
 
 interface LoginPageProps {
   onLogin: (user: User) => void;
@@ -15,6 +16,7 @@ interface LoginPageProps {
 
 export default function LoginPage({ onLogin }: LoginPageProps) {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
@@ -102,6 +104,44 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     };
   }, []);
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setMessage('');
+
+    // Check if captcha is completed
+    if (!captchaToken) {
+      setError('Please complete the captcha verification.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+        captchaToken,
+      });
+
+        if (error) {
+          setError(error.message);
+          captchaRef.current?.reset();
+          setCaptchaToken(null);
+        } else {
+          setMessage('Password reset email sent! Please check your email for instructions.');
+          setEmail('');
+          captchaRef.current?.reset();
+          setCaptchaToken(null);
+        }
+      } catch {
+        setError('An unexpected error occurred. Please try again.');
+        captchaRef.current?.reset();
+        setCaptchaToken(null);
+      } finally {
+      setLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -123,7 +163,24 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     }
 
     try {
-      if (isSignUp) {
+      if (isForgotPassword) {
+        // Handle Forgot Password
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/reset-password`,
+          captchaToken,
+        });
+
+          if (error) {
+            setError(error.message);
+            captchaRef.current?.reset();
+            setCaptchaToken(null);
+          } else {
+            setMessage('Password reset email sent! Please check your email for instructions.');
+            setEmail('');
+            captchaRef.current?.reset();
+            setCaptchaToken(null);
+          }
+      } else if (isSignUp) {
         // Handle Sign Up
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -200,10 +257,10 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       <Card className="w-full max-w-md shadow-card">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-2xl font-bold text-primary">
-            {isSignUp ? 'Create Admin Account' : 'Admin Login'}
+            {isSignUp ? 'Create Admin Account' : isForgotPassword ? 'Reset Password' : 'Admin Login'}
           </CardTitle>
           <CardDescription>
-            {isSignUp ? 'Enter your details to register' : 'Enter your credentials to access the CRM system'}
+            {isSignUp ? 'Enter your details to register' : isForgotPassword ? 'Enter your email to receive password reset instructions' : 'Enter your credentials to access the CRM system'}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -246,27 +303,29 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">{isSignUp ? 'Email' : 'Email or Username'}</Label>
+              <Label htmlFor="email">{isSignUp ? 'Email' : isForgotPassword ? 'Email' : 'Email or Username'}</Label>
               <Input
                 id="email"
-                type={isSignUp ? 'email' : 'text'}
-                placeholder={isSignUp ? 'admin@company.com' : 'admin@company.com or username'}
+                type={isSignUp || isForgotPassword ? 'email' : 'text'}
+                placeholder={isSignUp ? 'admin@company.com' : isForgotPassword ? 'admin@company.com' : 'admin@company.com or username'}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Enter your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-              />
-            </div>
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+              </div>
+            )}
             <div className="space-y-2">
               <Label>Security Verification</Label>
               <HCaptchaComponent
@@ -295,27 +354,68 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               className="w-full"
               disabled={loading}
             >
-              {loading ? (isSignUp ? 'Creating Account...' : 'Logging in...') : (isSignUp ? 'Sign Up' : 'Login')}
+              {loading ? (isSignUp ? 'Creating Account...' : isForgotPassword ? 'Sending Reset Email...' : 'Logging in...') : (isSignUp ? 'Sign Up' : isForgotPassword ? 'Send Reset Email' : 'Login')}
             </Button>
           </form>
 
-          <div className="mt-4 text-center text-sm">
-            {isSignUp ? "Already have an account? " : "Don't have an account? "}
-            <Button
-              variant="link"
-              className="p-0 h-auto"
-              onClick={() => {
-                setIsSignUp(!isSignUp);
-                setError('');
-                setMessage('');
-                setCaptchaToken(null);
-                setUsername('');
-                setUsernameError('');
-                captchaRef.current?.reset();
-              }}
-            >
-              {isSignUp ? 'Login' : 'Sign Up'}
-            </Button>
+          <div className="mt-4 text-center text-sm space-y-2">
+            {!isForgotPassword && (
+              <div>
+                {isSignUp ? "Already have an account? " : "Don't have an account? "}
+                <Button
+                  variant="link"
+                  className="p-0 h-auto"
+                  onClick={() => {
+                    setIsSignUp(!isSignUp);
+                    setError('');
+                    setMessage('');
+                    setCaptchaToken(null);
+                    setUsername('');
+                    setUsernameError('');
+                    captchaRef.current?.reset();
+                  }}
+                >
+                  {isSignUp ? 'Login' : 'Sign Up'}
+                </Button>
+              </div>
+            )}
+            {!isSignUp && !isForgotPassword && (
+              <div>
+                <Button
+                  variant="link"
+                  className="p-0 h-auto text-sm"
+                  onClick={() => {
+                    setIsForgotPassword(true);
+                    setError('');
+                    setMessage('');
+                    setCaptchaToken(null);
+                    setPassword('');
+                    captchaRef.current?.reset();
+                  }}
+                >
+                  Forgot your password?
+                </Button>
+              </div>
+            )}
+            {isForgotPassword && (
+              <div>
+                Remember your password?{' '}
+                <Button
+                  variant="link"
+                  className="p-0 h-auto"
+                  onClick={() => {
+                    setIsForgotPassword(false);
+                    setError('');
+                    setMessage('');
+                    setCaptchaToken(null);
+                    setEmail('');
+                    captchaRef.current?.reset();
+                  }}
+                >
+                  Back to Login
+                </Button>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
