@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { User } from '@supabase/supabase-js';
-import { validateUsername, isEmail, loginWithUsername, createAdminWithUsername } from '@/utils/rpcUsernameValidation';
+import { validateUsername, createAdminWithUsername } from '@/utils/rpcUsernameValidation';
 import { HCaptchaRef } from './HCaptcha';
 import HCaptchaComponent from './HCaptcha';
 
@@ -73,7 +73,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       if (!validation.isValid) {
         setUsernameError(validation.error || 'Invalid username');
       }
-    } catch (error) {
+    } catch {
       setUsernameError('Error validating username. Please try again.');
     } finally {
       setIsValidatingUsername(false);
@@ -171,38 +171,20 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
           }
         }
       } else {
-        // Handle Login - determine if input is email or username
-        const loginIdentifier = email;
-        
-        if (isEmail(loginIdentifier)) {
-          // Login with email - use standard Supabase auth
-          const { data, error } = await supabase.auth.signInWithPassword({
-            email: loginIdentifier,
-            password,
-            options: {
-              captchaToken,
-            },
-          });
-          if (error) {
-            setError(error.message);
-            captchaRef.current?.reset();
-            setCaptchaToken(null);
-          } else if (data.user) {
-            onLogin(data.user);
-          }
-        } else {
-          // Login with username - use Edge Function
-          const loginResult = await loginWithUsername(loginIdentifier, password, captchaToken || '');
-          
-          if (!loginResult) {
-            setError('Invalid username or password.');
-            captchaRef.current?.reset();
-            setCaptchaToken(null);
-          } else {
-            // Set the session in Supabase client
-            await supabase.auth.setSession(loginResult.session);
-            onLogin(loginResult.user);
-          }
+        // Handle Login - email only for now
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+          options: {
+            captchaToken,
+          },
+        });
+        if (error) {
+          setError(error.message);
+          captchaRef.current?.reset();
+          setCaptchaToken(null);
+        } else if (data.user) {
+          onLogin(data.user);
         }
       }
     } catch {
@@ -265,11 +247,11 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="email">{isSignUp ? 'Email' : isForgotPassword ? 'Email' : 'Email or Username'}</Label>
+              <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
-                type={isSignUp || isForgotPassword ? 'email' : 'text'}
-                placeholder={isSignUp ? 'admin@company.com' : isForgotPassword ? 'admin@company.com' : 'admin@company.com or username'}
+                type="email"
+                placeholder="admin@company.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required

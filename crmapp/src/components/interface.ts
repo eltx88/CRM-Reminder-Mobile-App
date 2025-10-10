@@ -22,18 +22,18 @@ export interface Client {
   
   // Dashboard Data Interfaces
   export interface DashboardStats {
-    managedClients: number;
-    sharedClients: number;
-    activeOrders: number;
-    pendingReminders: number;
+    managedClients: number;
+    sharedClients: number;
+    completedOrders: number;
+    activeOrders: number;
+    pendingReminders: number;
   }
   
   export interface DashboardData {
-    stats: DashboardStats;
-    recentClients: Client[] | null;
-    managedPackageDistribution: { name: string; value: number }[] | null;
-    sharedPackageDistribution: { name: string; value: number }[] | null;
-    reminderTypeDistribution: { name: string; value: number }[] | null;
+    stats: DashboardStats;
+    managedPackageDistribution: { name: string; value: number }[] | null;
+    sharedPackageDistribution: { name: string; value: number }[] | null;
+    reminderTypeDistribution: { name: string; value: number }[] | null;
   }
   
   // Clients Data Interfaces
@@ -223,16 +223,3 @@ export interface Client {
   
   export type ReminderTypeFilter = 'ALL' | 'FOLLOW_UP' | 'EXPIRY';
   export type ReminderSortBy = 'trigger_date' | 'created_at' | 'client_name';
-
-  export interface DashboardData {
-    stats: {
-      managedClients: number;
-      sharedClients: number;
-      activeOrders: number;
-      pendingReminders: number;
-    };
-    recentClients: Client[] | null;
-    managedPackageDistribution: { name: string; value: number }[] | null;
-    sharedPackageDistribution: { name: string; value: number }[] | null;
-    reminderTypeDistribution: { name: string; value: number }[] | null;
-  }

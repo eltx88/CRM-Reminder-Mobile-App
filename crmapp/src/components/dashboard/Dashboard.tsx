@@ -3,30 +3,24 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useData } from '@/contexts/DataContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import StatsCard from './StatsCard';
-import ClientCard from './ClientCard';
 import { DonutChartCard } from './DonutChartCard';
-import ClientDetailsDialog from '../clients/ClientDetailsDialog';
 import { User as SupabaseUser } from '@supabase/supabase-js';
-import { Search,ShoppingBag,RefreshCw,Bell,Package,TrendingUp } from 'lucide-react';
+import { ShoppingBag,RefreshCw,Bell,Package,TrendingUp } from 'lucide-react';
 
 interface DashboardPageProps {
   user: SupabaseUser;
 }
 
 export default function EnhancedDashboard({ user }: DashboardPageProps) {
-  const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('packages');
   const [showSharedClients, setShowSharedClients] = useState(false);
   const [remindersDropdownOpen, setRemindersDropdownOpen] = useState(false);
-  const [isClientDetailsOpen, setIsClientDetailsOpen] = useState(false);
-  const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
   
   const { 
@@ -74,9 +68,6 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
     }
   }, [isLoading]);
 
-  const filteredClients = data?.recentClients?.filter(client =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase())
-  ) || [];
 
   // Prepare data transformations
   const clientDistributionData = React.useMemo(() => {
@@ -93,10 +84,6 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
     return (data?.stats.managedClients ?? 0) + (data?.stats.sharedClients ?? 0);
   }, [data]);
 
-  const handleClientCardClick = (clientId: number) => {
-    setSelectedClientId(clientId);
-    setIsClientDetailsOpen(true);
-  };
 
   // Helper function to get reminder counts by type
   const getReminderCounts = React.useMemo(() => {
@@ -145,17 +132,8 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
   if (isLoading) {
     return (
       <div className="p-4 space-y-6">
-        {/* Header with Search - Show immediately */}
-        <div className="flex items-center justify-between">
-          <div className="relative flex-1 max-w-l">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search recent clients..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
-          </div>
+        {/* Header with Refresh - Show immediately */}
+        <div className="flex items-center justify-end">
           <Button variant="outline" onClick={() => refetch(user.id, undefined, undefined, true)} className="ml-4">
             <RefreshCw className="h-4 w-4 mr-2" />
             Refresh
@@ -167,9 +145,19 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
           <div className="h-24 bg-muted rounded-lg animate-pulse flex items-center justify-center loading-skeleton">
             <div className="text-center text-optimized">
               <div className="text-2xl font-bold text-muted-foreground">Loading...</div>
-              <div className="text-sm text-muted-foreground">Orders This Month</div>
+              <div className="text-sm text-muted-foreground">Active Orders This Month</div>
             </div>
           </div>
+          <div className="h-24 bg-muted rounded-lg animate-pulse flex items-center justify-center loading-skeleton">
+            <div className="text-center text-optimized">
+              <div className="text-2xl font-bold text-muted-foreground">Loading...</div>
+              <div className="text-sm text-muted-foreground">Completed Orders This Month</div>
+            </div>
+          </div>
+        </div>
+
+        {/* Reminders Card - Show with skeleton */}
+        <div className="grid grid-cols-1 gap-4">
           <div className="h-24 bg-muted rounded-lg animate-pulse flex items-center justify-center loading-skeleton">
             <div className="text-center text-optimized">
               <div className="text-2xl font-bold text-muted-foreground">Loading...</div>
@@ -194,15 +182,6 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
           </div>
         </div>
 
-        {/* Recent Clients - Show with skeleton */}
-        <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">Recent Clients</h2>
-          <div className="space-y-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-20 bg-muted rounded-lg animate-pulse"></div>
-            ))}
-          </div>
-        </div>
 
         {/* Timeout message */}
         {showTimeoutMessage && (
@@ -233,16 +212,7 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
   return (
     <div className="p-4 space-y-6 dashboard-content">
       {/* Header with Refresh - Critical content */}
-      <div className="flex items-center justify-between critical-content">
-        <div className="relative flex-1 max-w-l">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search recent clients..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 text-optimized"
-          />
-        </div>
+      <div className="flex items-center justify-end critical-content">
         <Button variant="outline" onClick={() => refetch(user.id, undefined, undefined, true)} className="ml-4">
           <RefreshCw className="h-4 w-4 mr-2" />
           Refresh
@@ -252,10 +222,19 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         <StatsCard
-          title="Orders This Month"
+          title="Active Orders This Month"
           value={data?.stats.activeOrders ?? 0}
           icon={ShoppingBag}
         />
+        <StatsCard
+          title="Completed Orders This Month"
+          value={data?.stats.completedOrders ?? 0}
+          icon={Package}
+        />
+      </div>
+
+      {/* Reminders Card */}
+      <div className="grid grid-cols-1 gap-4">
         <DropdownMenu open={remindersDropdownOpen} onOpenChange={setRemindersDropdownOpen}>
           <DropdownMenuTrigger asChild>
             <div>
@@ -314,9 +293,15 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
                   <span className="font-semibold">{data?.stats.sharedClients ?? 0}</span>
                 </div>
                 <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Total Orders This Month</span>
+                  <span className="font-semibold">
+                    {(data?.stats.activeOrders ?? 0) + (data?.stats.completedOrders ?? 0)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
                   <span className="text-sm text-muted-foreground">Orders per Client</span>
                   <span className="font-semibold">
-                    {totalClients > 0 ? ((data?.stats.activeOrders ?? 0) / totalClients).toFixed(1) : '0'}
+                    {totalClients > 0 ? (((data?.stats.activeOrders ?? 0) + (data?.stats.completedOrders ?? 0)) / totalClients).toFixed(1) : '0'}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -397,36 +382,6 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
         </TabsContent>
       </Tabs>
 
-      {/* Recent Clients Section */}
-      <div className="space-y-4">
-        <h2 className="text-lg font-semibold text-foreground">Recent Clients</h2>
-        
-        <div className="space-y-3">
-          {filteredClients.length === 0 ? (
-            <Card>
-              <CardContent className="p-6 text-center text-muted-foreground">
-                {searchQuery ? `No clients found matching "${searchQuery}"` : 'No recent clients found'}
-              </CardContent>
-            </Card>
-          ) : (
-            filteredClients.map((client) => (
-              <ClientCard
-                key={client.id}
-                client={client}
-                onClick={handleClientCardClick}
-              />
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Client Details Dialog */}
-      <ClientDetailsDialog
-        open={isClientDetailsOpen}
-        onOpenChange={setIsClientDetailsOpen}
-        clientId={selectedClientId}
-        userId={user.id}
-      />
     </div>
   );
 }
