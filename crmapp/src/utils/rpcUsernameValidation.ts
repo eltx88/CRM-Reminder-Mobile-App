@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
 
 // Username validation rules (client-side format validation only)
 export const USERNAME_RULES = {
@@ -145,7 +146,7 @@ export async function loginWithUsername(
   username: string,
   password: string,
   captchaToken: string
-): Promise<{ user: any; session: any } | null> {
+): Promise<{ user: User; session: Session } | null> {
   try {
     const { data, error } = await supabase.functions.invoke('username-login', {
       body: { 

@@ -53,7 +53,7 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
     setCaptchaToken(null);
   };
 
-  const handleCaptchaError = (error: string) => {
+  const handleCaptchaError = () => {
     setCaptchaToken(null);
     setError('Captcha verification failed. Please try again.');
   };
@@ -103,44 +103,6 @@ export default function LoginPage({ onLogin }: LoginPageProps) {
       }
     };
   }, []);
-
-  const handleForgotPassword = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
-    setMessage('');
-
-    // Check if captcha is completed
-    if (!captchaToken) {
-      setError('Please complete the captcha verification.');
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-        captchaToken,
-      });
-
-        if (error) {
-          setError(error.message);
-          captchaRef.current?.reset();
-          setCaptchaToken(null);
-        } else {
-          setMessage('Password reset email sent! Please check your email for instructions.');
-          setEmail('');
-          captchaRef.current?.reset();
-          setCaptchaToken(null);
-        }
-      } catch {
-        setError('An unexpected error occurred. Please try again.');
-        captchaRef.current?.reset();
-        setCaptchaToken(null);
-      } finally {
-      setLoading(false);
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

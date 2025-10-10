@@ -45,7 +45,7 @@ export default function ResetPasswordPage({ onLogin }: ResetPasswordPageProps) {
     setCaptchaToken(null);
   };
 
-  const handleCaptchaError = (error: string) => {
+  const handleCaptchaError = () => {
     setCaptchaToken(null);
     setError('Captcha verification failed. Please try again.');
   };
