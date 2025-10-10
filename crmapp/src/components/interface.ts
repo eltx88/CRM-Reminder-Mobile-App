@@ -1,19 +1,21 @@
 // Core Entity Interfaces
 export interface Client {
-    id: number;
-    created_at: string;
-    admin_id: string;
-    name: string;
-    dob: string | null; // Date of birth as ISO string
-    phone: string | null;
-    email: string | null;
-    issue: string | null;
-    notes: string | null;
-    package_id: number | null;
-    lifewave_id: number | null;
-    sponsor: string | null;
-    package_name?: string | null;
-  }
+  id: number;
+  created_at: string;
+  admin_id: string;
+  name: string;
+  dob: string | null; // Date of birth as ISO string
+  phone: string | null;
+  email: string | null;
+  issue: string | null;
+  notes: string | null;
+  package_id: number | null;
+  lifewave_id: number | null;
+  sponsor: string | null;
+  package_name?: string | null;
+  is_active: boolean;
+  deactivated_date?: string | null;
+}
   
   export interface Package {
     id: number;
@@ -38,8 +40,13 @@ export interface Client {
   
   // Clients Data Interfaces
   export interface ClientsData {
-    managedClients: Client[];
-    sharedClients: Client[];
+    managedClients: Client[];
+    sharedClients: Client[];
+  }
+
+  export interface InactiveClientsData {
+    managedInactiveClients: Client[];
+    sharedInactiveClients: Client[];
   }
   
   // Order Interfaces

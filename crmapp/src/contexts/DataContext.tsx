@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { supabase } from '@/supabase/client';
-import { DashboardData, ClientsData, FetchedOrder, Reminder, Client } from '@/components/interface';
+import { DashboardData, ClientsData, InactiveClientsData, FetchedOrder, Reminder, Client } from '@/components/interface';
 
 // Pagination response interfaces
 interface PaginatedOrdersResponse {
@@ -26,11 +26,13 @@ interface PaginatedRemindersResponse {
 interface DataCache {
   dashboardData: DashboardData | null;
   clientsData: ClientsData | null;
+  inactiveClientsData: InactiveClientsData | null;
   ordersData: PaginatedOrdersResponse | null;
   remindersData: PaginatedRemindersResponse | null;
   lastFetched: {
     dashboardData: number | null;
     clientsData: number | null;
+    inactiveClientsData: number | null;
     ordersData: number | null;
     remindersData: number | null;
   };
@@ -40,6 +42,7 @@ interface DataContextType {
   // Data
   dashboardData: DashboardData | null;
   clientsData: ClientsData | null;
+  inactiveClientsData: InactiveClientsData | null;
   ordersData: PaginatedOrdersResponse | null;
   remindersData: PaginatedRemindersResponse | null;
   
@@ -47,6 +50,7 @@ interface DataContextType {
   isLoading: {
     dashboardData: boolean;
     clientsData: boolean;
+    inactiveClientsData: boolean;
     ordersData: boolean;
     remindersData: boolean;
   };
@@ -55,6 +59,7 @@ interface DataContextType {
   errors: {
     dashboardData: string | null;
     clientsData: string | null;
+    inactiveClientsData: string | null;
     ordersData: string | null;
     remindersData: string | null;
   };
@@ -62,11 +67,16 @@ interface DataContextType {
   // Actions with date range and pagination support
   fetchDashboardData: (userId: string, startDate?: string, endDate?: string, forceRefresh?: boolean) => Promise<void>;
   fetchClientsData: (userId: string, forceRefresh?: boolean) => Promise<void>;
+  fetchInactiveClientsData: (userId: string, forceRefresh?: boolean) => Promise<void>;
   fetchOrdersData: (userId: string, startDate?: string, endDate?: string, searchTerm?: string, page?: number, limit?: number, forceRefresh?: boolean) => Promise<void>;
   fetchRemindersData: (userId: string, startDate?: string, endDate?: string, searchTerm?: string, reminderTypeFilter?: string, sortBy?: string, sortOrder?: string, page?: number, limit?: number, forceRefresh?: boolean) => Promise<void>;
   
+  // Client management actions
+  setClientInactive: (userId: string, clientId: number) => Promise<void>;
+  setClientActive: (userId: string, clientId: number) => Promise<void>;
+  
   // Cache invalidation
-  invalidateCache: (dataType?: 'dashboardData' | 'clientsData' | 'ordersData' | 'remindersData') => void;
+  invalidateCache: (dataType?: 'dashboardData' | 'clientsData' | 'inactiveClientsData' | 'ordersData' | 'remindersData') => void;
   
   // Refresh all data
   refreshAllData: (userId: string) => Promise<void>;
@@ -84,11 +94,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [cache, setCache] = useState<DataCache>({
     dashboardData: null,
     clientsData: null,
+    inactiveClientsData: null,
     ordersData: null,
     remindersData: null,
     lastFetched: {
       dashboardData: null,
       clientsData: null,
+      inactiveClientsData: null,
       ordersData: null,
       remindersData: null,
     },
@@ -97,6 +109,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState({
     dashboardData: false,
     clientsData: false,
+    inactiveClientsData: false,
     ordersData: false,
     remindersData: false,
   });
@@ -104,11 +117,13 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const [errors, setErrors] = useState<{
     dashboardData: string | null;
     clientsData: string | null;
+    inactiveClientsData: string | null;
     ordersData: string | null;
     remindersData: string | null;
   }>({
     dashboardData: null,
     clientsData: null,
+    inactiveClientsData: null,
     ordersData: null,
     remindersData: null,
   });
@@ -199,6 +214,110 @@ export function DataProvider({ children }: { children: ReactNode }) {
       setIsLoading(prev => ({ ...prev, clientsData: false }));
     }
   }, [cache.clientsData, cache.lastFetched.clientsData]);
+
+  const invalidateCache = useCallback((dataType?: 'dashboardData' | 'clientsData' | 'inactiveClientsData' | 'ordersData' | 'remindersData') => {
+    if (dataType) {
+      setCache(prev => ({
+        ...prev,
+        [dataType]: null,
+        lastFetched: { ...prev.lastFetched, [dataType]: null }
+      }));
+    } else {
+      // Invalidate all cache
+      setCache({
+        dashboardData: null,
+        clientsData: null,
+        inactiveClientsData: null,
+        ordersData: null,
+        remindersData: null,
+        lastFetched: {
+          dashboardData: null,
+          clientsData: null,
+          inactiveClientsData: null,
+          ordersData: null,
+          remindersData: null,
+        },
+      });
+    }
+  }, []);
+
+  const fetchInactiveClientsData = useCallback(async (userId: string, forceRefresh = false) => {
+    if (!forceRefresh && cache.inactiveClientsData && isCacheValid(cache.lastFetched.inactiveClientsData)) {
+      return;
+    }
+
+    setIsLoading(prev => ({ ...prev, inactiveClientsData: true }));
+    setErrors(prev => ({ ...prev, inactiveClientsData: null }));
+
+    try {
+      const { data, error } = await supabase.rpc('get_inactive_clients_data', {
+        admin_uuid: userId
+      });
+
+      if (error) {
+        console.error('Error fetching inactive clients data:', error);
+        throw new Error('Could not fetch inactive clients data');
+      }
+
+      const response = data as unknown as InactiveClientsData;
+      const inactiveClientsData: InactiveClientsData = {
+        managedInactiveClients: response?.managedInactiveClients || [],
+        sharedInactiveClients: response?.sharedInactiveClients || []
+      };
+
+      setCache(prev => ({
+        ...prev,
+        inactiveClientsData,
+        lastFetched: { ...prev.lastFetched, inactiveClientsData: Date.now() }
+      }));
+    } catch (error: unknown) {
+      setErrors(prev => ({ ...prev, inactiveClientsData: error instanceof Error ? error.message : 'Unknown error' }));
+    } finally {
+      setIsLoading(prev => ({ ...prev, inactiveClientsData: false }));
+    }
+  }, [cache.inactiveClientsData, cache.lastFetched.inactiveClientsData]);
+
+  const setClientInactive = useCallback(async (userId: string, clientId: number) => {
+    try {
+      const { error } = await supabase.rpc('set_client_inactive', {
+        admin_uuid: userId,
+        client_id_param: clientId
+      });
+
+      if (error) {
+        console.error('Error setting client inactive:', error);
+        throw new Error('Could not deactivate client');
+      }
+
+      // Invalidate clients cache to force refresh
+      invalidateCache('clientsData');
+      invalidateCache('inactiveClientsData');
+    } catch (error: unknown) {
+      console.error('Error setting client inactive:', error);
+      throw error;
+    }
+  }, [invalidateCache]);
+
+  const setClientActive = useCallback(async (userId: string, clientId: number) => {
+    try {
+      const { error } = await supabase.rpc('set_client_active', {
+        admin_uuid: userId,
+        client_id_param: clientId
+      });
+
+      if (error) {
+        console.error('Error setting client active:', error);
+        throw new Error('Could not reactivate client');
+      }
+
+      // Invalidate clients cache to force refresh
+      invalidateCache('clientsData');
+      invalidateCache('inactiveClientsData');
+    } catch (error: unknown) {
+      console.error('Error setting client active:', error);
+      throw error;
+    }
+  }, [invalidateCache]);
 
   const fetchOrdersData = useCallback(async (userId: string, startDate?: string, endDate?: string, searchTerm?: string, page: number = 1, limit: number = 50, forceRefresh = false) => {
     if (!forceRefresh && cache.ordersData && isCacheValid(cache.lastFetched.ordersData)) {
@@ -328,38 +447,15 @@ export function DataProvider({ children }: { children: ReactNode }) {
     }
   }, [cache.remindersData, cache.lastFetched.remindersData]);
 
-  const invalidateCache = useCallback((dataType?: 'dashboardData' | 'clientsData' | 'ordersData' | 'remindersData') => {
-    if (dataType) {
-      setCache(prev => ({
-        ...prev,
-        [dataType]: null,
-        lastFetched: { ...prev.lastFetched, [dataType]: null }
-      }));
-    } else {
-      // Invalidate all cache
-      setCache({
-        dashboardData: null,
-        clientsData: null,
-        ordersData: null,
-        remindersData: null,
-        lastFetched: {
-          dashboardData: null,
-          clientsData: null,
-          ordersData: null,
-          remindersData: null,
-        },
-      });
-    }
-  }, []);
-
   const refreshAllData = useCallback(async (userId: string) => {
     await Promise.all([
       fetchDashboardData(userId, undefined, undefined, true),
       fetchClientsData(userId, true),
+      fetchInactiveClientsData(userId, true),
       fetchOrdersData(userId, undefined, undefined, undefined, 1, 50, true),
       fetchRemindersData(userId, undefined, undefined, '', undefined, 'trigger_date', 'ASC', 1, 50, true),
     ]);
-  }, [fetchDashboardData, fetchClientsData, fetchOrdersData, fetchRemindersData]);
+  }, [fetchDashboardData, fetchClientsData, fetchInactiveClientsData, fetchOrdersData, fetchRemindersData]);
 
   const deleteClient = useCallback(async (userId: string, clientId: number) => {
     try {
@@ -384,14 +480,18 @@ export function DataProvider({ children }: { children: ReactNode }) {
   const value: DataContextType = {
     dashboardData: cache.dashboardData,
     clientsData: cache.clientsData,
+    inactiveClientsData: cache.inactiveClientsData,
     ordersData: cache.ordersData,
     remindersData: cache.remindersData,
     isLoading,
     errors,
     fetchDashboardData,
     fetchClientsData,
+    fetchInactiveClientsData,
     fetchOrdersData,
     fetchRemindersData,
+    setClientInactive,
+    setClientActive,
     invalidateCache,
     refreshAllData,
     deleteClient,

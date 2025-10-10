@@ -464,6 +464,10 @@ export type Database = {
         }
         Returns: Json
       }
+      deactivate_old_clients: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       delete_client: {
         Args: { admin_uuid: string; client_id_param: number }
         Returns: Json
@@ -537,6 +541,10 @@ export type Database = {
       }
       get_dashboard_data: {
         Args: { admin_uuid: string; end_date?: string; start_date?: string }
+        Returns: Json
+      }
+      get_inactive_clients_data: {
+        Args: { admin_uuid: string }
         Returns: Json
       }
       get_order_details: {
@@ -677,6 +685,14 @@ export type Database = {
       }
       mark_reminder_completed: {
         Args: { admin_uuid: string; p_reminder_id: number }
+        Returns: Json
+      }
+      set_client_active: {
+        Args: { admin_uuid: string; client_id_param: number }
+        Returns: Json
+      }
+      set_client_inactive: {
+        Args: { admin_uuid: string; client_id_param: number }
         Returns: Json
       }
       update_client: {

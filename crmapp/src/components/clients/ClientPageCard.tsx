@@ -4,16 +4,19 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger, DropdownMenuItem } from '@/components/ui/dropdown-menu';
-import { Phone, Mail, Calendar, Package, User, MoreVertical, Bell, ShoppingCart, Trash2 } from 'lucide-react';
+import { Phone, Mail, Calendar, Package, User, MoreVertical, Bell, ShoppingCart, Trash2, UserCheck, UserX } from 'lucide-react';
 import { Client } from '../interface';
 
 interface ClientPageCardProps {
   client: Client;
   onClick: () => void;
   showManaged: boolean;
+  showInactive?: boolean;
   onCreateReminder: (clientId: number, clientName: string) => void;
   onCreateOrder: (clientId: number, clientName: string) => void;
   onDelete: (client: Client) => void;
+  onSetInactive?: (client: Client) => void;
+  onSetActive?: (client: Client) => void;
 }
 
 const calculateAge = (dob: string | null): number | null => {
@@ -53,9 +56,12 @@ const getPackageColor = (packageName: string | null | undefined) => {
 export default function ClientPageCard({ 
   client, 
   onClick, 
+  showInactive = false,
   onCreateReminder, 
   onCreateOrder, 
-  onDelete 
+  onDelete,
+  onSetInactive,
+  onSetActive
 }: ClientPageCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -82,6 +88,16 @@ export default function ClientPageCard({
     onDelete(client);
   };
 
+  const handleSetInactive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSetInactive?.(client);
+  };
+
+  const handleSetActive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSetActive?.(client);
+  };
+
   const age = calculateAge(client.dob);
 
   return (
@@ -94,12 +110,22 @@ export default function ClientPageCard({
                 <User className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h3 className="font-semibold text-lg">{client.name}</h3>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-semibold text-lg">{client.name}</h3>
+                  <Badge variant={client.is_active ? 'default' : 'destructive'} className="text-xs">
+                    {client.is_active ? 'Active' : 'Inactive'}
+                  </Badge>
+                </div>
                 {age && (
                   <p className="text-sm text-muted-foreground">Age: {age}</p>
                 )}
                 {client.dob && (
                   <p className="text-xs text-muted-foreground">DOB: {formatDate(client.dob)}</p>
+                )}
+                {!client.is_active && client.deactivated_date && (
+                  <p className="text-xs text-muted-foreground text-red-600">
+                    Deactivated: {formatDate(client.deactivated_date)}
+                  </p>
                 )}
               </div>
             </div>
@@ -187,14 +213,30 @@ export default function ClientPageCard({
                   WhatsApp
                 </DropdownMenuItem>
               )} */}
-              <DropdownMenuItem onClick={handleCreateReminder}>
-                <Bell className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
-                Create Reminder
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleCreateOrder}>
-                <ShoppingCart className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
-                Create Order
-              </DropdownMenuItem>
+              {client.is_active ? (
+                <DropdownMenuItem onClick={handleCreateReminder}>
+                  <Bell className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
+                  Create Reminder
+                </DropdownMenuItem>
+              ) : null}
+              {client.is_active ? (
+                <DropdownMenuItem onClick={handleCreateOrder}>
+                  <ShoppingCart className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
+                  Create Order
+                </DropdownMenuItem>
+              ) : null}
+              {client.is_active && onSetInactive ? (
+                <DropdownMenuItem onClick={handleSetInactive} className="text-orange-600 focus:text-orange-600">
+                  <UserX className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
+                  Deactivate Client
+                </DropdownMenuItem>
+              ) : null}
+              {!client.is_active && onSetActive ? (
+                <DropdownMenuItem onClick={handleSetActive} className="text-green-600 focus:text-green-600">
+                  <UserCheck className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
+                  Reactivate Client
+                </DropdownMenuItem>
+              ) : null}
               <DropdownMenuItem onClick={handleDelete} className="text-destructive focus:text-destructive">
                 <Trash2 className="text-red-500 h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
                 Delete Client

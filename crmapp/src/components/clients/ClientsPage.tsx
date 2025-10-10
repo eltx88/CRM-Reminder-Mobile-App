@@ -33,6 +33,7 @@ const calculateAge = (dob: string | null): number | null => {
 
 export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps) {
   const [activeTab, setActiveTab] = useState('managed');
+  const [showInactive, setShowInactive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('date-joined-latest');
   const [selectedPackages, setSelectedPackages] = useState<string[]>([]);
@@ -50,9 +51,13 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
 
   const { 
     clientsData: data, 
-    isLoading: { clientsData: isLoading }, 
-    errors: { clientsData: isError },
+    inactiveClientsData: inactiveData,
+    isLoading: { clientsData: isLoading, inactiveClientsData: isLoadingInactive }, 
+    errors: { clientsData: isError, inactiveClientsData: isErrorInactive },
     fetchClientsData: refetch,
+    fetchInactiveClientsData: refetchInactive,
+    setClientInactive,
+    setClientActive,
     deleteClient
   } = useData();
 
@@ -67,6 +72,13 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     hasFetchedRef.current = true;
     refetch(user.id);
   }, [refetch, user.id]);
+
+  // Load inactive clients when showInactive changes
+  useEffect(() => {
+    if (showInactive) {
+      refetchInactive(user.id);
+    }
+  }, [showInactive, refetchInactive, user.id]);
 
   const sortClients = (clients: Client[]) => {
     return [...clients].sort((a, b) => {
@@ -104,17 +116,21 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     });
   };
 
-  const filteredManagedClients = data?.managedClients.filter(client =>
-    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    client.phone?.includes(searchQuery)
-  ) || [];
+  // Get clients based on showInactive state
+  const managedClients = showInactive ? (inactiveData?.managedInactiveClients || []) : (data?.managedClients || []);
+  const sharedClients = showInactive ? (inactiveData?.sharedInactiveClients || []) : (data?.sharedClients || []);
 
-  const filteredSharedClients = data?.sharedClients.filter(client =>
+  const filteredManagedClients = managedClients.filter(client =>
     client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     client.phone?.includes(searchQuery)
-  ) || [];
+  );
+
+  const filteredSharedClients = sharedClients.filter(client =>
+    client.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    client.phone?.includes(searchQuery)
+  );
 
   const packageFilteredManagedClients = filterByPackages(filteredManagedClients);
   const packageFilteredSharedClients = filterByPackages(filteredSharedClients);
@@ -135,7 +151,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   // Reset to first page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchQuery, sortBy, selectedPackages, activeTab]);
+  }, [searchQuery, sortBy, selectedPackages, activeTab, showInactive]);
 
   const handleCreateSuccess = () => {
     setIsCreateDialogOpen(false);
@@ -145,6 +161,30 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
   const handleClientClick = (client: Client) => {
     setSelectedClient(client);
     setIsDetailsDialogOpen(true);
+  };
+
+  const handleSetClientInactive = async (client: Client) => {
+    try {
+      await setClientInactive(user.id, client.id);
+      refetch(user.id, true);
+      if (showInactive) {
+        refetchInactive(user.id, true);
+      }
+    } catch (error) {
+      console.error('Error setting client inactive:', error);
+    }
+  };
+
+  const handleSetClientActive = async (client: Client) => {
+    try {
+      await setClientActive(user.id, client.id);
+      refetch(user.id, true);
+      if (showInactive) {
+        refetchInactive(user.id, true);
+      }
+    } catch (error) {
+      console.error('Error setting client active:', error);
+    }
   };
 
   const handleDetailsSuccess = () => {
@@ -200,7 +240,10 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     setCurrentPage(1); // Reset to first page
   };
 
-  if (isLoading) {
+  const currentLoading = showInactive ? isLoadingInactive : isLoading;
+  const currentError = showInactive ? isErrorInactive : isError;
+
+  if (currentLoading) {
     return (
       <div className="p-4 space-y-6 animate-pulse">
         <div className="h-10 bg-muted rounded"></div>
@@ -212,11 +255,11 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     );
   }
 
-  if (isError) {
+  if (currentError) {
     return (
       <div className="p-4 text-center text-destructive">
-        Failed to load clients data. Please try again.
-        <Button variant="outline" onClick={() => refetch(user.id, true)} className="ml-2">
+        Failed to load {showInactive ? 'inactive' : 'active'} clients data. Please try again.
+        <Button variant="outline" onClick={() => showInactive ? refetchInactive(user.id, true) : refetch(user.id, true)} className="ml-2">
           <RefreshCw className="h-4 w-4 mr-2" style={{ pointerEvents: 'none' }} />
           Retry
         </Button>
@@ -254,6 +297,22 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
         </div>
       </div>
 
+      {/* Inactive Clients Toggle */}
+      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-medium text-gray-700">
+            {showInactive ? 'Showing Inactive Clients' : 'Showing Active Clients'}
+            <Badge 
+              variant={showInactive ? 'destructive' : 'default'}
+              className="ml-2 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => setShowInactive(!showInactive)}
+            >
+              {showInactive ? 'Inactive' : 'Active'}
+            </Badge>
+          </span>
+        </div>
+      </div>
+
       {/* Search and Filters */}
       <div className="p-2 bg-gray-50 rounded-lg">
         <div className="grid grid-cols-1 gap-2 md:grid-cols-12">
@@ -264,7 +323,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
                 style={{ pointerEvents: 'none' }}
               />
               <Input
-                placeholder="Search clients by name, email, or phone..."
+                placeholder={`Search ${showInactive ? 'inactive' : 'active'} clients by name, email, or phone...`}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10 w-full"
@@ -378,9 +437,12 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
                     client={client}
                     onClick={() => handleClientClick(client)}
                     showManaged={true}
+                    showInactive={showInactive}
                     onCreateReminder={onCreateReminder}
                     onCreateOrder={handleCreateOrder}
                     onDelete={handleDeleteClient}
+                    onSetInactive={handleSetClientInactive}
+                    onSetActive={handleSetClientActive}
                   />
                 ))}
               </div>
@@ -471,9 +533,12 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
                     client={client}
                     onClick={() => handleClientClick(client)}
                     showManaged={false}
+                    showInactive={showInactive}
                     onCreateReminder={onCreateReminder}
                     onCreateOrder={handleCreateOrder}
                     onDelete={handleDeleteClient}
+                    onSetInactive={handleSetClientInactive}
+                    onSetActive={handleSetClientActive}
                   />
                 ))}
               </div>
