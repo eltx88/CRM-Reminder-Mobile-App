@@ -161,15 +161,25 @@ export default function ClientDetailsDialog({
     }
   }, [client, form, isEditMode]);
 
-  // Update package selection when packages are loaded and client is set
+  // Update form when switching to edit mode
   useEffect(() => {
-    if (client && packages && packages.length > 0 && isEditMode) {
-      const currentPackageId = client.package_id?.toString();
-      if (currentPackageId) {
-        form.setValue('package_id', currentPackageId);
-      }
+    if (client && isEditMode) {
+      // Use setTimeout to ensure the form is ready
+      setTimeout(() => {
+        form.reset({
+          name: client.name || '',
+          dob: client.dob || '',
+          phone: client.phone || '',
+          email: client.email || '',
+          issue: client.issue || '',
+          notes: client.notes || '',
+          package_id: client.package_id?.toString() || '',
+          lifewave_id: client.lifewave_id?.toString() || '',
+          sponsor: client.sponsor || '',
+        });
+      }, 0);
     }
-  }, [client, packages, form, isEditMode]);
+  }, [isEditMode, client, form]);
 
   // Watch for form changes (edit mode only)
   const watchedValues = form.watch();
@@ -243,6 +253,20 @@ export default function ClientDetailsDialog({
 
   const handleEdit = () => {
     setIsEditMode(true);
+    // Reset form with current client data when entering edit mode
+    if (client) {
+      form.reset({
+        name: client.name || '',
+        dob: client.dob || '',
+        phone: client.phone || '',
+        email: client.email || '',
+        issue: client.issue || '',
+        notes: client.notes || '',
+        package_id: client.package_id?.toString() || '',
+        lifewave_id: client.lifewave_id?.toString() || '',
+        sponsor: client.sponsor || '',
+      });
+    }
   };
 
   // Loading state

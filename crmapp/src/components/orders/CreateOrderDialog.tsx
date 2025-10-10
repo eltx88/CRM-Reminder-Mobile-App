@@ -26,8 +26,8 @@ const orderSchema = z.object({
     order_items: z.array(z.object({
       product_id: z.number().min(1, 'A product must be selected for all items.'),
       quantity: z.number().min(1, 'Quantity must be at least 1.'),
-    })).min(1, 'Order items cannot be empty'),
-    enroller_id: z.number().optional().transform(val => val || undefined),
+    })).min(1, 'At least one order item is required'),
+    enroller_id: z.number().min(1, 'Enroller ID is required'),
     enroller_name: z.string().optional().transform(val => val || undefined),
   });
   
@@ -64,16 +64,14 @@ export default function CreateOrderDialog({
     const [isMaintenanceOrder, setIsMaintenanceOrder] = useState(false);
     const [isExpiryDateManuallyEdited, setIsExpiryDateManuallyEdited] = useState(false);
     const [expandedFields, setExpandedFields] = useState<{
-      payment_mode: boolean;
+      payment_details: boolean;
       shipping_location: boolean;
       collection_date: boolean;
-      payment_date: boolean;
       notes: boolean;
     }>({
-      payment_mode: false,
+      payment_details: false,
       shipping_location: false,
       collection_date: false,
-      payment_date: false,
       notes: false,
     });
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -89,7 +87,7 @@ export default function CreateOrderDialog({
         shipping_location: '',
         notes: '',
         order_items: [{ product_id: 0, quantity: 1 }],
-        enroller_id: 0,
+        enroller_id: 1,
         enroller_name: '',
     });
 
@@ -216,7 +214,7 @@ export default function CreateOrderDialog({
       shipping_location: '',
       notes: '',
       order_items: [{ product_id: 0, quantity: 1 }],
-      enroller_id: 0,
+      enroller_id: 1,
       enroller_name: '',
     });
     setSelectedClient(null);
@@ -225,10 +223,9 @@ export default function CreateOrderDialog({
     setShowMaintenanceDialog(false);
     setIsMaintenanceOrder(false);
     setExpandedFields({
-      payment_mode: false,
+      payment_details: false,
       shipping_location: false,
       collection_date: false,
-      payment_date: false,
       notes: false,
     });
     setError(null);
@@ -347,7 +344,14 @@ export default function CreateOrderDialog({
 
     // Check for empty order items first
     if (!formData.order_items || formData.order_items.length === 0) {
-      setError('Order items cannot be empty');
+      setError('At least one order item is required');
+      return;
+    }
+
+    // Check if all order items have valid products selected
+    const hasValidItems = formData.order_items.some(item => item.product_id !== 0);
+    if (!hasValidItems) {
+      setError('At least one product must be selected for order items');
       return;
     }
 
@@ -547,13 +551,13 @@ export default function CreateOrderDialog({
         {/* Enroller Information */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-                <Label htmlFor="enroller_id">Enroller ID</Label>
+                <Label htmlFor="enroller_id">Enroller LifeWave ID *</Label>
                 <Input
                     id="enroller_id"
                     type="number"
-                    placeholder="Enter enroller ID..."
+                    placeholder="Enter LifeWave ID..."
                     value={formData.enroller_id || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : undefined }))}
+                    onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : 1 }))}
                     className="mt-2"
                 />
             </div>
@@ -573,7 +577,7 @@ export default function CreateOrderDialog({
         {/* Order Items */}
         <div>
             <div className="flex items-center  justify-between mb-2">
-            <Label>Order Items</Label>
+            <Label>Order Items *</Label>
             <div className="flex items-center gap-2">
                 <Button 
                     type="button" 
@@ -766,31 +770,43 @@ export default function CreateOrderDialog({
 
         {/* Individual Optional Fields */}
         <div className="space-y-4">
-            {/* Payment Mode */}
+            {/* Payment Details */}
             <div className="border rounded-lg p-3">
                 <button
                     type="button"
-                    onClick={() => toggleField('payment_mode')}
+                    onClick={() => toggleField('payment_details')}
                     className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
                 >
-                    {expandedFields.payment_mode ? (
+                    {expandedFields.payment_details ? (
                         <ChevronDown className="h-4 w-4" />
                     ) : (
                         <ChevronRight className="h-4 w-4" />
                     )}
-                    Payment Mode
+                    Payment Details
                     <span className="text-xs text-gray-500">(Optional)</span>
                 </button>
-                {expandedFields.payment_mode && (
-                    <div className="mt-3">
-                        <Label htmlFor="payment_mode">Payment Mode</Label>
-                        <Input
-                            id="payment_mode"
-                            className="mt-2"
-                            value={formData.payment_mode}
-                            onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
-                            placeholder="e.g., Credit Card, Cash"
-                        />
+                {expandedFields.payment_details && (
+                    <div className="mt-3 space-y-4">
+                        <div>
+                            <Label htmlFor="payment_mode">Payment Mode</Label>
+                            <Input
+                                id="payment_mode"
+                                className="mt-2"
+                                value={formData.payment_mode}
+                                onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
+                                placeholder="e.g., Credit Card, Cash"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="payment_date">Payment Date</Label>
+                            <Input
+                                id="payment_date"
+                                type="date"
+                                className="mt-2"
+                                value={formData.payment_date}
+                                onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
+                            />
+                        </div>
                     </div>
                 )}
             </div>
@@ -848,35 +864,6 @@ export default function CreateOrderDialog({
                             className="mt-2"
                             value={formData.collection_date}
                             onChange={(e) => setFormData(prev => ({ ...prev, collection_date: e.target.value }))}
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Payment Date */}
-            <div className="border rounded-lg p-3">
-                <button
-                    type="button"
-                    onClick={() => toggleField('payment_date')}
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
-                >
-                    {expandedFields.payment_date ? (
-                        <ChevronDown className="h-4 w-4" />
-                    ) : (
-                        <ChevronRight className="h-4 w-4" />
-                    )}
-                    Payment Date
-                    <span className="text-xs text-gray-500">(Optional)</span>
-                </button>
-                {expandedFields.payment_date && (
-                    <div className="mt-3">
-                        <Label htmlFor="payment_date">Payment Date</Label>
-                        <Input
-                            id="payment_date"
-                            type="date"
-                            className="mt-2"
-                            value={formData.payment_date}
-                            onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
                         />
                     </div>
                 )}

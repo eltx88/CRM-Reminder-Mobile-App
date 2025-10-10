@@ -168,7 +168,7 @@ export default function ClientPageCard({
                   className="h-4 w-4 text-muted-foreground" 
                   style={{ pointerEvents: 'none' }}
                 />
-                <span>Added {formatDate(client.created_at)}</span>
+                <span>Enrolled Date: {formatDate(client.created_at)}</span>
               </div>
             </div>
 

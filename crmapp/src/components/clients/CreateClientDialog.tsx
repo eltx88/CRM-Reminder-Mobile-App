@@ -18,13 +18,13 @@ import { CreateClientDialogProps, CreateClientResponse, Package } from '../inter
 const clientSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
   dob: z.string().optional(),
-  countryCode: z.string().optional(),
-  phone: z.string().optional(),
+  countryCode: z.string().min(1, 'Country code is required'),
+  phone: z.string().min(1, 'Phone number is required'),
   email: z.email('Invalid email address').optional().or(z.literal('')),
   issue: z.string().optional(),
   notes: z.string().optional(),
-  package_id: z.string().optional(),
-  lifewave_id: z.string().optional(),
+  package_id: z.string().min(1, 'Package must be selected'),
+  lifewave_id: z.string().min(1, 'LifeWave ID is required'),
   sponsor: z.string().optional(),
 });
 
@@ -50,13 +50,13 @@ const createClient = async (clientData: ClientFormData, adminId: string): Promis
   const { data, error } = await supabase.rpc('create_client', {
     admin_uuid: adminId,
     client_name: clientData.name,
-    client_dob: clientData.dob,
+    client_dob: clientData.dob && clientData.dob.trim() !== '' ? clientData.dob : undefined,
     client_phone: fullPhoneNumber,
     client_email: clientData.email,
     client_issue: clientData.issue,
     client_notes: clientData.notes,
-    client_package_id: clientData.package_id ? parseInt(clientData.package_id) : undefined,
-    client_lifewave_id: clientData.lifewave_id ? parseInt(clientData.lifewave_id) : undefined,
+    client_package_id: parseInt(clientData.package_id),
+    client_lifewave_id: parseInt(clientData.lifewave_id),
     client_sponsor: clientData.sponsor,
   });
 
@@ -174,7 +174,7 @@ export default function CreateClientDialog({
                   name="countryCode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Country Code</FormLabel>
+                      <FormLabel>Country Code *</FormLabel>
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
                           <SelectTrigger>
@@ -196,7 +196,7 @@ export default function CreateClientDialog({
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone Number*</FormLabel>
+                      <FormLabel>Phone Number *</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter phone number" {...field} />
                       </FormControl>
@@ -229,7 +229,7 @@ export default function CreateClientDialog({
                 name="package_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Package*</FormLabel>
+                    <FormLabel>Package *</FormLabel>
                     <Select onValueChange={field.onChange} value={field.value || undefined}>
                       <FormControl>
                         <SelectTrigger>
@@ -260,7 +260,7 @@ export default function CreateClientDialog({
                 name="lifewave_id"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>LifeWave ID</FormLabel>
+                    <FormLabel>LifeWave ID *</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 

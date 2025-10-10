@@ -95,16 +95,14 @@ export default function EditOrderDialog({
   const [loadingClient, setLoadingClient] = useState(false);
   const [isExpiryDateManuallyEdited, setIsExpiryDateManuallyEdited] = useState(false);
   const [expandedFields, setExpandedFields] = useState<{
-    payment_mode: boolean;
+    payment_details: boolean;
     shipping_location: boolean;
     collection_date: boolean;
-    payment_date: boolean;
     notes: boolean;
   }>({
-    payment_mode: false,
+    payment_details: false,
     shipping_location: false,
     collection_date: false,
-    payment_date: false,
     notes: false,
   });
   const [products, setProducts] = useState<Product[]>([]);
@@ -526,17 +524,16 @@ export default function EditOrderDialog({
     // Expand payment fields
     setExpandedFields(prev => ({
       ...prev,
-      payment_mode: true,
-      payment_date: true
+      payment_details: true
     }));
 
     // Wait for fields to expand, then scroll and highlight
     setTimeout(() => {
-      // Find the payment mode field container
-      const paymentModeField = document.querySelector('[data-field="payment_mode"]');
-      if (paymentModeField) {
+      // Find the payment details field container
+      const paymentDetailsField = document.querySelector('[data-field="payment_details"]');
+      if (paymentDetailsField) {
         // Scroll to the payment fields section
-        paymentModeField.scrollIntoView({ 
+        paymentDetailsField.scrollIntoView({ 
           behavior: 'smooth', 
           block: 'center' 
         });
@@ -937,36 +934,48 @@ export default function EditOrderDialog({
 
           {/* Individual Optional Fields */}
           <div className="space-y-4">
-            {/* Payment Mode */}
+            {/* Payment Details */}
             <div 
-              data-field="payment_mode"
+              data-field="payment_details"
               className={`border rounded-lg p-3 transition-all duration-300 ${
                 highlightPaymentFields ? 'ring-2 ring-red-500 bg-red-50' : ''
               }`}
             >
               <button
                 type="button"
-                onClick={() => toggleField('payment_mode')}
+                onClick={() => toggleField('payment_details')}
                 className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
               >
-                {expandedFields.payment_mode ? (
+                {expandedFields.payment_details ? (
                   <ChevronDown className="h-4 w-4" />
                 ) : (
                   <ChevronRight className="h-4 w-4" />
                 )}
-                Payment Mode
+                Payment Details
                 <span className="text-xs text-gray-500">(Optional)</span>
               </button>
-              {expandedFields.payment_mode && (
-                <div className="mt-3">
-                  <Label htmlFor="payment_mode">Payment Mode</Label>
-                  <Input
-                    id="payment_mode"
-                    className={`mt-2 ${highlightPaymentFields ? 'ring-2 ring-red-500 border-red-500' : ''}`}
-                    value={formData.payment_mode}
-                    onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
-                    placeholder="e.g., Credit Card, Cash"
-                  />
+              {expandedFields.payment_details && (
+                <div className="mt-3 space-y-4">
+                  <div>
+                    <Label htmlFor="payment_mode">Payment Mode</Label>
+                    <Input
+                      id="payment_mode"
+                      className={`mt-2 ${highlightPaymentFields ? 'ring-2 ring-red-500 border-red-500' : ''}`}
+                      value={formData.payment_mode}
+                      onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
+                      placeholder="e.g., Credit Card, Cash"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="payment_date">Payment Date</Label>
+                    <Input
+                      id="payment_date"
+                      type="date"
+                      className={`mt-2 ${highlightPaymentFields ? 'ring-2 ring-red-500 border-red-500' : ''}`}
+                      value={formData.payment_date}
+                      onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
+                    />
+                  </div>
                 </div>
               )}
             </div>
@@ -1029,39 +1038,6 @@ export default function EditOrderDialog({
               )}
             </div>
 
-            {/* Payment Date */}
-            <div 
-              data-field="payment_date"
-              className={`border rounded-lg p-3 transition-all duration-300 ${
-                highlightPaymentFields ? 'ring-2 ring-red-500 bg-red-50' : ''
-              }`}
-            >
-              <button
-                type="button"
-                onClick={() => toggleField('payment_date')}
-                className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
-              >
-                {expandedFields.payment_date ? (
-                  <ChevronDown className="h-4 w-4" />
-                ) : (
-                  <ChevronRight className="h-4 w-4" />
-                )}
-                Payment Date
-                <span className="text-xs text-gray-500">(Optional)</span>
-              </button>
-              {expandedFields.payment_date && (
-                <div className="mt-3">
-                  <Label htmlFor="payment_date">Payment Date</Label>
-                  <Input
-                    id="payment_date"
-                    type="date"
-                    className={`mt-2 ${highlightPaymentFields ? 'ring-2 ring-red-500 border-red-500' : ''}`}
-                    value={formData.payment_date}
-                    onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
-                  />
-                </div>
-              )}
-            </div>
 
             {/* Notes */}
             <div className="border rounded-lg p-3">
