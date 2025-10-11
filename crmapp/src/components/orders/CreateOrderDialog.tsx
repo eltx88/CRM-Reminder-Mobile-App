@@ -90,7 +90,7 @@ export default function CreateOrderDialog({
         shipping_location: '',
         notes: '',
         order_items: [{ product_id: 0, quantity: 1 }],
-        enroller_id: 1,
+        enroller_id: 0,
         enroller_name: '',
     });
 
@@ -226,7 +226,7 @@ export default function CreateOrderDialog({
       shipping_location: '',
       notes: '',
       order_items: [{ product_id: 0, quantity: 1 }],
-      enroller_id: 1,
+      enroller_id: 0,
       enroller_name: '',
     });
     setSelectedClient(null);
@@ -259,7 +259,7 @@ export default function CreateOrderDialog({
       // If unchecked, clear the fields
       setFormData(prev => ({
         ...prev,
-        enroller_id: 1,
+        enroller_id: 0,
         enroller_name: ''
       }));
     }
@@ -384,7 +384,7 @@ export default function CreateOrderDialog({
 
     // Check if enroller fields are required when checkbox is unchecked
     if (!isRegisteredUnderCustomer) {
-      if (!formData.enroller_id || formData.enroller_id < 1) {
+      if (!formData.enroller_id || formData.enroller_id <= 0) {
         setError('Registered Lifewave ID is required when not using customer account');
         return;
       }
@@ -613,7 +613,7 @@ export default function CreateOrderDialog({
                             type="number"
                             placeholder="Enter registered Lifewave ID..."
                             value={formData.enroller_id || ''}
-                            onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : 1 }))}
+                            onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : 0 }))}
                             className="mt-2"
                         />
                     </div>
@@ -624,7 +624,15 @@ export default function CreateOrderDialog({
                             type="text"
                             placeholder="Enter registered name..."
                             value={formData.enroller_name}
-                            onChange={(e) => setFormData(prev => ({ ...prev, enroller_name: e.target.value }))}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              const formattedValue = value
+                                .toLowerCase()
+                                .split(' ')
+                                .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                                .join(' ');
+                              setFormData(prev => ({ ...prev, enroller_name: formattedValue }));
+                            }}
                             className="mt-2"
                         />
                     </div>

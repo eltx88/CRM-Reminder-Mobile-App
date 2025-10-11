@@ -151,23 +151,62 @@ export function DataProvider({ children }: { children: ReactNode }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
-      const { data, error } = await supabase.rpc('get_dashboard_data', {
+      // Always use current month for dashboard data, regardless of parameters passed
+      const today = new Date();
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      const todayString = today.toISOString().split('T')[0];
+      
+      // Fetch dashboard data for the month
+      const { data: dashboardData, error: dashboardError } = await supabase.rpc('get_dashboard_data', {
         admin_uuid: userId,
-        start_date: startDate || undefined,
-        end_date: endDate || undefined,
+        start_date: startOfMonth.toISOString().split('T')[0],
+        end_date: endOfMonth.toISOString().split('T')[0],
       });
 
-      clearTimeout(timeoutId);
+      // Fetch today's reminders separately
+      const { data: remindersData, error: remindersError } = await supabase.rpc('get_reminders_for_admin', {
+        admin_uuid: userId,
+        start_date: todayString,
+        end_date: todayString,
+        limit_count: 1000, // Get all reminders for today
+        offset_count: 0,
+      });
 
-      if (error) {
-        console.error('Error fetching dashboard data:', error);
+      if (dashboardError) {
+        console.error('Error fetching dashboard data:', dashboardError);
         throw new Error('Could not fetch dashboard data');
       }
 
-      const dashboardData = data as unknown as DashboardData;
+      if (remindersError) {
+        console.error('Error fetching reminders data:', remindersError);
+        throw new Error('Could not fetch reminders data');
+      }
+
+      // Process reminders data to get counts by type
+      const reminders = remindersData || [];
+      const followUpCount = reminders.filter((r: any) => r.reminder_type === 'FOLLOW_UP' && r.status === 'PENDING').length;
+      const expiryCount = reminders.filter((r: any) => r.reminder_type === 'EXPIRY' && r.status === 'PENDING').length;
+      const totalPendingReminders = followUpCount + expiryCount;
+
+      // Combine dashboard data with today's reminder counts
+      const dashboardResult = dashboardData as unknown as DashboardData;
+      const combinedData: DashboardData = {
+        ...dashboardResult,
+        stats: {
+          ...dashboardResult.stats,
+          pendingReminders: totalPendingReminders
+        },
+        reminderTypeDistribution: [
+          { name: 'FOLLOW_UP', value: followUpCount },
+          { name: 'EXPIRY', value: expiryCount }
+        ]
+      };
+      clearTimeout(timeoutId);
+
       setCache(prev => ({
         ...prev,
-        dashboardData,
+        dashboardData: combinedData,
         lastFetched: { ...prev.lastFetched, dashboardData: Date.now() }
       }));
     } catch (error: unknown) {

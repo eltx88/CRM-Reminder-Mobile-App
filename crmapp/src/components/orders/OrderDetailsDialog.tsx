@@ -144,7 +144,12 @@ export default function OrderDetailsDialog({
                 {order.enroller_name && (
                   <div className="flex items-center gap-2">
                     <User className="h-4 w-4 text-gray-400" />
-                    <span>Enroller: {order.enroller_name}{order.enroller_id && ` (ID: ${order.enroller_id})`}</span>
+                    <span>
+                      {order.enroller_name === order.client_name 
+                        ? "Order placed under customer's own account"
+                        : `Registered Under: ${order.enroller_name}${order.enroller_id ? ` (ID: ${order.enroller_id})` : ''}`
+                      }
+                    </span>
                   </div>
                 )}
                 <div className="flex items-center gap-2">

@@ -631,9 +631,20 @@ export default function EditOrderDialog({
           </div>
 
           {/* Enroller Information */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="enroller_id">Enroller ID</Label>
+          <div className="space-y-4">
+            {/* Account Status Message */}
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-800">
+                {formData.enroller_name === selectedClient?.client_name 
+                  ? "This order was placed under the customer's own Lifewave account, change the details below if you need to update them"
+                  : "This order was placed under a different account"
+                }
+              </p>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="enroller_id">Registered Lifewave ID</Label>
               <Input
                 id="enroller_id"
                 type="number"
@@ -644,15 +655,24 @@ export default function EditOrderDialog({
               />
             </div>
             <div>
-              <Label htmlFor="enroller_name">Enroller Name</Label>
+              <Label htmlFor="enroller_name">Registered Name</Label>
               <Input
                 id="enroller_name"
                 type="text"
                 placeholder="Enter enroller name..."
                 value={formData.enroller_name}
-                onChange={(e) => setFormData(prev => ({ ...prev, enroller_name: e.target.value }))}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const formattedValue = value
+                    .toLowerCase()
+                    .split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+                  setFormData(prev => ({ ...prev, enroller_name: formattedValue }));
+                }}
                 className="mt-2"
               />
+            </div>
             </div>
           </div>
 

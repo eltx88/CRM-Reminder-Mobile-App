@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { DropdownMenu,DropdownMenuContent,DropdownMenuItem,DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import StatsCard from './StatsCard';
 import { DonutChartCard } from './DonutChartCard';
 import { User as SupabaseUser } from '@supabase/supabase-js';
@@ -20,7 +19,6 @@ interface DashboardPageProps {
 export default function EnhancedDashboard({ user }: DashboardPageProps) {
   const [activeTab, setActiveTab] = useState('packages');
   const [showSharedClients, setShowSharedClients] = useState(false);
-  const [remindersDropdownOpen, setRemindersDropdownOpen] = useState(false);
   const [showTimeoutMessage, setShowTimeoutMessage] = useState(false);
   
   const { 
@@ -41,17 +39,13 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
     }
     hasFetchedRef.current = true;
     
-    // Set default date ranges for dashboard
-    const today = new Date();
-    const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-    const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-    
     // Set a timeout to show a message if loading takes too long
     timeoutRef.current = setTimeout(() => {
       setShowTimeoutMessage(true);
     }, 3000); // Show timeout message after 3 seconds
     
-    refetch(user.id, startOfMonth.toISOString().split('T')[0], endOfMonth.toISOString().split('T')[0]);
+    // Dashboard data will always use current month, no need to pass dates
+    refetch(user.id);
     
     return () => {
       if (timeoutRef.current) {
@@ -156,12 +150,18 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
           </div>
         </div>
 
-        {/* Reminders Card - Show with skeleton */}
-        <div className="grid grid-cols-1 gap-4">
+        {/* Reminders Cards - Show with skeleton */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="h-24 bg-muted rounded-lg animate-pulse flex items-center justify-center loading-skeleton">
             <div className="text-center text-optimized">
               <div className="text-2xl font-bold text-muted-foreground">Loading...</div>
-              <div className="text-sm text-muted-foreground">Reminders Today</div>
+              <div className="text-sm text-muted-foreground">Follow Up Reminders Today</div>
+            </div>
+          </div>
+          <div className="h-24 bg-muted rounded-lg animate-pulse flex items-center justify-center loading-skeleton">
+            <div className="text-center text-optimized">
+              <div className="text-2xl font-bold text-muted-foreground">Loading...</div>
+              <div className="text-sm text-muted-foreground">Expiry Reminders Today</div>
             </div>
           </div>
         </div>
@@ -222,41 +222,29 @@ export default function EnhancedDashboard({ user }: DashboardPageProps) {
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
         <StatsCard
-          title="Active Orders This Month"
+          title="Orders Pending Collection This Month"
           value={data?.stats.activeOrders ?? 0}
           icon={ShoppingBag}
         />
         <StatsCard
-          title="Completed Orders This Month"
+          title="Orders Collected This Month"
           value={data?.stats.completedOrders ?? 0}
           icon={Package}
         />
       </div>
 
-      {/* Reminders Card */}
-      <div className="grid grid-cols-1 gap-4">
-        <DropdownMenu open={remindersDropdownOpen} onOpenChange={setRemindersDropdownOpen}>
-          <DropdownMenuTrigger asChild>
-            <div>
-              <StatsCard
-                title="Reminders Today"
-                value={data?.stats.pendingReminders ?? 0}
-                icon={Bell}
-                onClick={() => setRemindersDropdownOpen(!remindersDropdownOpen)}
-              />
-            </div>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-full">
-            <DropdownMenuItem className="flex justify-between items-center">
-              <span>Follow Up Reminders</span>
-              <span className="font-semibold">{getReminderCounts.followUp}</span>
-            </DropdownMenuItem>
-            <DropdownMenuItem className="flex justify-between items-center">
-              <span>Expiry Reminders</span>
-              <span className="font-semibold">{getReminderCounts.expiry}</span>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+      {/* Reminders Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <StatsCard
+          title="Follow Up Reminders Today"
+          value={getReminderCounts.followUp}
+          icon={Bell}
+        />
+        <StatsCard
+          title="Expiry Reminders Today"
+          value={getReminderCounts.expiry}
+          icon={Bell}
+        />
       </div>
 
       {/* Analytics Tabs */}
