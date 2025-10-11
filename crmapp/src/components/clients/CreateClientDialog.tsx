@@ -123,6 +123,27 @@ export default function CreateClientDialog({
     onOpenChange(false);
   };
 
+  // Function to convert text to proper case (first letter of each word capitalized)
+  const toProperCase = (text: string): string => {
+    return text
+      .toLowerCase()
+      .split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
+  // Handle name field change with proper case formatting
+  const handleNameChange = (value: string) => {
+    const formattedValue = toProperCase(value);
+    form.setValue('name', formattedValue);
+  };
+
+  // Handle sponsor field change with proper case formatting
+  const handleSponsorChange = (value: string) => {
+    const formattedValue = toProperCase(value);
+    form.setValue('sponsor', formattedValue);
+  };
+
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -141,7 +162,11 @@ export default function CreateClientDialog({
                 <FormItem>
                   <FormLabel>Name *</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter client's full name" {...field} />
+                    <Input 
+                      placeholder="Enter client's full name" 
+                      {...field}
+                      onChange={(e) => handleNameChange(e.target.value)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -301,7 +326,11 @@ export default function CreateClientDialog({
                 <FormItem>
                   <FormLabel>Sponsor</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter sponsor name eg...Jolene" {...field} />
+                    <Input 
+                      placeholder="Enter sponsor name eg...Jolene" 
+                      {...field}
+                      onChange={(e) => handleSponsorChange(e.target.value)}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

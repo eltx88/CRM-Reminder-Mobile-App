@@ -8,8 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { AlertCircle, Loader2, Plus, Minus, Package, Coins, Check, ChevronDown, ChevronRight, Trash2, X } from 'lucide-react';
+import { AlertCircle, Loader2, Plus, Minus, Package, Coins, Check, ChevronDown, ChevronRight, Trash2, X, Info } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Database } from '@/supabase/types';
 import * as z from 'zod';
 import { OrderItem } from '../interface';
@@ -66,16 +67,14 @@ export default function CreateOrderDialog({
   const [isExpiryDateManuallyEdited, setIsExpiryDateManuallyEdited] = useState(false);
   const [isRegisteredUnderCustomer, setIsRegisteredUnderCustomer] = useState(true);
   const [expandedFields, setExpandedFields] = useState<{
-    payment_mode: boolean;
+    payment_details: boolean;
     shipping_location: boolean;
     collection_date: boolean;
-    payment_date: boolean;
     notes: boolean;
   }>({
-    payment_mode: false,
+    payment_details: false,
     shipping_location: false,
     collection_date: false,
-    payment_date: false,
     notes: false,
   });
     const dropdownRef = useRef<HTMLDivElement>(null);
@@ -122,7 +121,7 @@ export default function CreateOrderDialog({
       setFormData(prev => ({ 
         ...prev, 
         client_id: client.client_id.toString(),
-        enroller_id: isRegisteredUnderCustomer ? (client.client_lifewave_id || 1) : prev.enroller_id,
+        enroller_id: isRegisteredUnderCustomer ? (client.client_lifewave_id) : prev.enroller_id,
         enroller_name: isRegisteredUnderCustomer ? client.client_name : prev.enroller_name
       }));
       setShowClientDropdown(false);
@@ -237,10 +236,9 @@ export default function CreateOrderDialog({
     setIsMaintenanceOrder(false);
     setIsRegisteredUnderCustomer(true);
     setExpandedFields({
-      payment_mode: false,
+      payment_details: false,
       shipping_location: false,
       collection_date: false,
-      payment_date: false,
       notes: false,
     });
     setError(null);
@@ -491,7 +489,9 @@ export default function CreateOrderDialog({
         <form onSubmit={handleSubmit} className="space-y-6">
         {/* Client Selection */}
         <div>
-            <Label htmlFor="client">Customer's Name *</Label>
+            <div className="flex items-center gap-2 mb-2">
+                <Label htmlFor="client">Customer&apos;s Name *</Label>
+            </div>
             {loadingClients ? (
               <div className="flex items-center gap-2 p-2 border rounded-md">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -507,7 +507,7 @@ export default function CreateOrderDialog({
                 <Input
                   id="client"
                   type="text"
-                  placeholder="Type client name to search..."
+                  placeholder="Type customer name to search..."
                   value={clientSearchTerm}
                   onChange={(e) => {
                     setClientSearchTerm(e.target.value);
@@ -596,10 +596,12 @@ export default function CreateOrderDialog({
                     id="registered-under-customer"
                     checked={isRegisteredUnderCustomer}
                     onCheckedChange={handleRegisteredUnderCustomerChange}
-                />
-                <Label htmlFor="registered-under-customer" className="text-sm font-medium">
-                    Registered Under Customer's Lifewave Account
-                </Label>
+                />      
+                <div className="flex items-center gap-2">
+                    <Label htmlFor="registered-under-customer" className="text-sm font-medium">
+                        Order Registered Under Customer&apos;s Own Account
+                    </Label>
+                </div>
             </div>
             
             {!isRegisteredUnderCustomer && (
@@ -632,7 +634,7 @@ export default function CreateOrderDialog({
             {isRegisteredUnderCustomer && selectedClient && (
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
                     <div className="text-sm text-blue-800">
-                        <strong>Registration Details:</strong> This order will be registered under {selectedClient.client_name}'s Lifewave account (ID: {selectedClient.client_lifewave_id || 'N/A'})
+                        <strong>Registration Details:</strong> This order will be registered under {selectedClient.client_name}&apos;s Lifewave account (ID: {selectedClient.client_lifewave_id || 'N/A'})
                     </div>
                 </div>
             )}
@@ -763,10 +765,7 @@ export default function CreateOrderDialog({
                     })()}
                 </div>
 
-                
-
-                {/* FIXED: Check formData.order_items.length */}
-                {formData.order_items.length > 1 && (
+                                {formData.order_items.length > 1 && (
                     <Button
                     type="button"
                     onClick={() => removeOrderItem(index)}
@@ -779,6 +778,22 @@ export default function CreateOrderDialog({
                 )}
                 </div>
             ))}
+            </div>
+
+            {/* Add Item Button Below */}
+            <div className="flex justify-center mt-2">
+                <Button 
+                    type="button" 
+                    onClick={addOrderItem} 
+                    variant="outline" 
+                    size="sm"
+                    disabled={!canAddMoreItems()}
+                    title={!canAddMoreItems() ? "Cannot add more items - points allowance reached" : "Add another item"}
+                    className="flex items-center gap-2"
+                >
+                    <Plus className="h-4 w-4" />
+                    Add Item
+                </Button>
             </div>
 
             {/* Points Summary */}
@@ -834,30 +849,71 @@ export default function CreateOrderDialog({
 
         {/* Individual Optional Fields */}
         <div className="space-y-4">
-            {/* Payment Mode */}
+            {/* Payment Details */}
             <div className="border rounded-lg p-3">
                 <button
                     type="button"
-                    onClick={() => toggleField('payment_mode')}
+                    onClick={() => toggleField('payment_details')}
                     className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
                 >
-                    {expandedFields.payment_mode ? (
+                    {expandedFields.payment_details ? (
                         <ChevronDown className="h-4 w-4" />
                     ) : (
                         <ChevronRight className="h-4 w-4" />
                     )}
-                    Payment Mode
+                    Payment Details
                     <span className="text-xs text-gray-500">(Optional)</span>
                 </button>
-                {expandedFields.payment_mode && (
+                {expandedFields.payment_details && (
+                    <div className="mt-3 space-y-4">
+                        <div>
+                            <Label htmlFor="payment_mode">Payment Mode</Label>
+                            <Input
+                                id="payment_mode"
+                                className="mt-2"
+                                value={formData.payment_mode}
+                                onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
+                                placeholder="e.g., Credit Card, Cash"
+                            />
+                        </div>
+                        <div>
+                            <Label htmlFor="payment_date">Payment Date</Label>
+                            <Input
+                                id="payment_date"
+                                type="date"
+                                className="mt-2"
+                                value={formData.payment_date}
+                                onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
+                            />
+                        </div>
+                    </div>  
+                )}
+            </div>
+
+            {/* Collection Date */}
+            <div className="border rounded-lg p-3">
+                <button
+                    type="button"
+                    onClick={() => toggleField('collection_date')}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
+                >
+                    {expandedFields.collection_date ? (
+                        <ChevronDown className="h-4 w-4" />
+                    ) : (
+                        <ChevronRight className="h-4 w-4" />
+                    )}
+                    Collection Date
+                    <span className="text-xs text-gray-500">(Optional)</span>
+                </button>
+                {expandedFields.collection_date && (
                     <div className="mt-3">
-                        <Label htmlFor="payment_mode">Payment Mode</Label>
+                        <Label htmlFor="collection_date">Collection Date</Label>
                         <Input
-                            id="payment_mode"
+                            id="collection_date"
+                            type="date"
                             className="mt-2"
-                            value={formData.payment_mode}
-                            onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
-                            placeholder="e.g., Credit Card, Cash"
+                            value={formData.collection_date}
+                            onChange={(e) => setFormData(prev => ({ ...prev, collection_date: e.target.value }))}
                         />
                     </div>
                 )}
@@ -892,64 +948,7 @@ export default function CreateOrderDialog({
                 )}
             </div>
 
-            {/* Collection Date */}
-            <div className="border rounded-lg p-3">
-                <button
-                    type="button"
-                    onClick={() => toggleField('collection_date')}
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
-                >
-                    {expandedFields.collection_date ? (
-                        <ChevronDown className="h-4 w-4" />
-                    ) : (
-                        <ChevronRight className="h-4 w-4" />
-                    )}
-                    Collection Date
-                    <span className="text-xs text-gray-500">(Optional)</span>
-                </button>
-                {expandedFields.collection_date && (
-                    <div className="mt-3">
-                        <Label htmlFor="collection_date">Collection Date</Label>
-                        <Input
-                            id="collection_date"
-                            type="date"
-                            className="mt-2"
-                            value={formData.collection_date}
-                            onChange={(e) => setFormData(prev => ({ ...prev, collection_date: e.target.value }))}
-                        />
-                    </div>
-                )}
-            </div>
-
-            {/* Payment Date */}
-            <div className="border rounded-lg p-3">
-                <button
-                    type="button"
-                    onClick={() => toggleField('payment_date')}
-                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
-                >
-                    {expandedFields.payment_date ? (
-                        <ChevronDown className="h-4 w-4" />
-                    ) : (
-                        <ChevronRight className="h-4 w-4" />
-                    )}
-                    Payment Date
-                    <span className="text-xs text-gray-500">(Optional)</span>
-                </button>
-                {expandedFields.payment_date && (
-                    <div className="mt-3">
-                        <Label htmlFor="payment_date">Payment Date</Label>
-                        <Input
-                            id="payment_date"
-                            type="date"
-                            className="mt-2"
-                            value={formData.payment_date}
-                            onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
-                        />
-                    </div>
-                )}
-            </div>
-
+            
             {/* Notes */}
             <div className="border rounded-lg p-3">
                 <button
@@ -1017,45 +1016,46 @@ export default function CreateOrderDialog({
       <AlertDialog open={showMaintenanceDialog} onOpenChange={setShowMaintenanceDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-md">Existing Orders Found for</AlertDialogTitle>
-            <AlertDialogTitle className="text-md">{selectedClient?.client_name}</AlertDialogTitle>
-            <AlertDialogDescription>
-     
+            <AlertDialogTitle className="text-md">There are existing orders for {selectedClient?.client_name}</AlertDialogTitle>
+            <AlertDialogDescription> 
               Would you like to create a maintenance pack order or a regular  order?
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          {onCheckOrders && selectedClient && (
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    onCheckOrders(selectedClient.client_name);
-                    setShowMaintenanceDialog(false);
-                    onOpenChange(false);
-                  }}
-                  className="w-full sm:w-auto bg-blue-600 text-white border hover:bg-white hover:text-blue-600"
-                >
-                  Check Existing Orders (Year to DateE)
-                </Button>
-              )}
-          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
-            <div className="flex flex-col gap-2 w-full sm:w-auto">
-              <AlertDialogCancel onClick={() => {
-                setShowMaintenanceDialog(false);
-                setIsMaintenanceOrder(false);
-              }}>
-                Create New Order
+            </AlertDialogHeader>
+            {onCheckOrders && selectedClient && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      onCheckOrders(selectedClient.client_name);
+                      setShowMaintenanceDialog(false);
+                      onOpenChange(false);
+                    }}
+                    className="w-full sm:w-auto bg-blue-600 text-white border hover:bg-white hover:text-blue-600"
+                  >
+                    Check Existing Orders (Year to Date)
+                  </Button>
+                )}
+            <AlertDialogFooter className="flex flex-col gap-2 sm:flex-row sm:justify-center">
+              <AlertDialogCancel 
+                onClick={() => {
+                  setShowMaintenanceDialog(false);
+                  setIsMaintenanceOrder(false);
+                }}
+                className="w-full sm:w-auto bg-white text-black-500 cursor-pointer border hover:bg-white hover:text-blue-600"
+              >
+                Create Regular Order
               </AlertDialogCancel>
-            </div>
-            <AlertDialogAction
-              onClick={() => {
-                setIsMaintenanceOrder(true);
-                setShowMaintenanceDialog(false);
-              }}
-              className="bg-white text-black-500 border hover:bg-white hover:text-blue-600 w-full mt-2 sm:w-auto"
-            >
-              Create Maintenance Pack Order
-            </AlertDialogAction>
-          </AlertDialogFooter>
+
+              <AlertDialogAction
+                onClick={() => {
+                  setIsMaintenanceOrder(true);
+                  setShowMaintenanceDialog(false);
+                }}
+                className="w-full sm:w-auto bg-white text-black-500  cursor-pointer border hover:bg-white hover:text-blue-600"
+              >
+                Maintenance Pack Order 
+              </AlertDialogAction>
+
+            </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </Dialog>

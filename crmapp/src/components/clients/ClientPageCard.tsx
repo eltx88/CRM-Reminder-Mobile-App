@@ -56,7 +56,6 @@ const getPackageColor = (packageName: string | null | undefined) => {
 export default function ClientPageCard({ 
   client, 
   onClick, 
-  showInactive = false,
   onCreateReminder, 
   onCreateOrder, 
   onDelete,

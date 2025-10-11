@@ -886,6 +886,20 @@ export default function EditOrderDialog({
               ))}
             </div>
 
+            {/* Add Item Button Below */}
+            <div className="flex justify-center mt-2">
+                <Button 
+                    type="button" 
+                    onClick={addOrderItem} 
+                    variant="outline" 
+                    size="sm"
+                    className="flex items-center gap-2"
+                >
+                    <Plus className="h-4 w-4" />
+                    Add Item
+                </Button>
+            </div>
+
             {/* Points Summary */}
             {selectedClient && (
               <div className="mt-2 p-2 bg-blue-50 text-blue-700 rounded text-sm">

@@ -528,11 +528,11 @@ export default function ClientDetailsDialog({
                 name="notes"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Notes</FormLabel>
+                    <FormLabel>Username</FormLabel>
                     <FormControl>
                       <Textarea 
-                        placeholder="Additional notes about the client..."
-                        className="min-h-[80px]"
+                        placeholder="Update Lifewave Username here..."
+                        className="min-h-[30px]"
                         {...field} 
                       />
                     </FormControl>
@@ -576,9 +576,6 @@ export default function ClientDetailsDialog({
                   </div>
                   <div>
                     <h3 className="text-xl font-semibold">{getDisplayValue('name')}</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Client Membership No: {getDisplayValue('lifewave_id')}
-                    </p>
                   </div>
                 </div>
 
@@ -615,7 +612,7 @@ export default function ClientDetailsDialog({
                 {client?.lifewave_id && (
                   <div className="flex items-center gap-2">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">LifeWave ID: {client.lifewave_id}</span>
+                    <span className="text-sm">LifeWave Membership ID: {client.lifewave_id}</span>
                   </div>
                 )}
               </CardContent>
@@ -672,7 +669,7 @@ export default function ClientDetailsDialog({
                   )}
                   {client?.notes && (
                     <div>
-                      <h4 className="font-medium mb-2">Notes</h4>
+                      <h4 className="font-medium mb-2">Username</h4>
                       <p className="text-sm text-muted-foreground whitespace-pre-wrap">{client.notes}</p>
                     </div>
                   )}
