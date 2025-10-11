@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertCircle, Loader2, Plus, Minus, Package, Coins, Check, ChevronDown, ChevronRight, Trash2, X } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { Database } from '@/supabase/types';
 import * as z from 'zod';
 import { OrderItem } from '../interface';
@@ -28,7 +29,7 @@ const orderSchema = z.object({
       quantity: z.number().min(1, 'Quantity must be at least 1.'),
     })).min(1, 'At least one order item is required'),
     enroller_id: z.number().min(1, 'Enroller ID is required'),
-    enroller_name: z.string().optional().transform(val => val || undefined),
+    enroller_name: z.string().min(1, 'Enroller name is required'),
   });
   
 type orderFormData = z.infer<typeof orderSchema>;
@@ -62,18 +63,21 @@ export default function CreateOrderDialog({
     const [showClientDropdown, setShowClientDropdown] = useState(false);
     const [showMaintenanceDialog, setShowMaintenanceDialog] = useState(false);
     const [isMaintenanceOrder, setIsMaintenanceOrder] = useState(false);
-    const [isExpiryDateManuallyEdited, setIsExpiryDateManuallyEdited] = useState(false);
-    const [expandedFields, setExpandedFields] = useState<{
-      payment_details: boolean;
-      shipping_location: boolean;
-      collection_date: boolean;
-      notes: boolean;
-    }>({
-      payment_details: false,
-      shipping_location: false,
-      collection_date: false,
-      notes: false,
-    });
+  const [isExpiryDateManuallyEdited, setIsExpiryDateManuallyEdited] = useState(false);
+  const [isRegisteredUnderCustomer, setIsRegisteredUnderCustomer] = useState(true);
+  const [expandedFields, setExpandedFields] = useState<{
+    payment_mode: boolean;
+    shipping_location: boolean;
+    collection_date: boolean;
+    payment_date: boolean;
+    notes: boolean;
+  }>({
+    payment_mode: false,
+    shipping_location: false,
+    collection_date: false,
+    payment_date: false,
+    notes: false,
+  });
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const [formData, setFormData] = useState<orderFormData>({
@@ -115,17 +119,26 @@ export default function CreateOrderDialog({
     if (client.has_existing_order && !isMaintenanceOrder) {
       setSelectedClient(client);
       setClientSearchTerm(client.client_name);
-      setFormData(prev => ({ ...prev, client_id: client
-        .client_id.toString() }));
+      setFormData(prev => ({ 
+        ...prev, 
+        client_id: client.client_id.toString(),
+        enroller_id: isRegisteredUnderCustomer ? (client.client_lifewave_id || 1) : prev.enroller_id,
+        enroller_name: isRegisteredUnderCustomer ? client.client_name : prev.enroller_name
+      }));
       setShowClientDropdown(false);
       setShowMaintenanceDialog(true);
     } else {
       setSelectedClient(client);
       setClientSearchTerm(client.client_name);
-      setFormData(prev => ({ ...prev, client_id: client.client_id.toString() }));
+      setFormData(prev => ({ 
+        ...prev, 
+        client_id: client.client_id.toString(),
+        enroller_id: isRegisteredUnderCustomer ? (client.client_lifewave_id || 1) : prev.enroller_id,
+        enroller_name: isRegisteredUnderCustomer ? client.client_name : prev.enroller_name
+      }));
       setShowClientDropdown(false);
     }
-  }, [isMaintenanceOrder]);
+  }, [isMaintenanceOrder, isRegisteredUnderCustomer]);
 
   // Calculate expiry date based on order items
   const calculateExpiryDate = useCallback(() => {
@@ -222,13 +235,36 @@ export default function CreateOrderDialog({
     setShowClientDropdown(false);
     setShowMaintenanceDialog(false);
     setIsMaintenanceOrder(false);
+    setIsRegisteredUnderCustomer(true);
     setExpandedFields({
-      payment_details: false,
+      payment_mode: false,
       shipping_location: false,
       collection_date: false,
+      payment_date: false,
       notes: false,
     });
     setError(null);
+  };
+
+  // Handle checkbox change
+  const handleRegisteredUnderCustomerChange = (checked: boolean) => {
+    setIsRegisteredUnderCustomer(checked);
+    
+    if (checked && selectedClient) {
+      // If checked, use client's lifewave_id and name
+      setFormData(prev => ({
+        ...prev,
+        enroller_id: selectedClient.client_lifewave_id || 1,
+        enroller_name: selectedClient.client_name
+      }));
+    } else if (!checked) {
+      // If unchecked, clear the fields
+      setFormData(prev => ({
+        ...prev,
+        enroller_id: 1,
+        enroller_name: ''
+      }));
+    }
   };
 
   // Filter clients based on search term
@@ -344,15 +380,20 @@ export default function CreateOrderDialog({
 
     // Check for empty order items first
     if (!formData.order_items || formData.order_items.length === 0) {
-      setError('At least one order item is required');
+      setError('Order items cannot be empty');
       return;
     }
 
-    // Check if all order items have valid products selected
-    const hasValidItems = formData.order_items.some(item => item.product_id !== 0);
-    if (!hasValidItems) {
-      setError('At least one product must be selected for order items');
-      return;
+    // Check if enroller fields are required when checkbox is unchecked
+    if (!isRegisteredUnderCustomer) {
+      if (!formData.enroller_id || formData.enroller_id < 1) {
+        setError('Registered Lifewave ID is required when not using customer account');
+        return;
+      }
+      if (!formData.enroller_name || formData.enroller_name.trim() === '') {
+        setError('Registered Name is required when not using customer account');
+        return;
+      }
     }
 
     const validationResult = orderSchema.safeParse({
@@ -450,7 +491,7 @@ export default function CreateOrderDialog({
         <form onSubmit={handleSubmit} className="space-y-6">
         {/* Client Selection */}
         <div>
-            <Label htmlFor="client">Client *</Label>
+            <Label htmlFor="client">Customer's Name *</Label>
             {loadingClients ? (
               <div className="flex items-center gap-2 p-2 border rounded-md">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -548,30 +589,53 @@ export default function CreateOrderDialog({
             />
         </div>
 
-        {/* Enroller Information */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-                <Label htmlFor="enroller_id">Enroller LifeWave ID *</Label>
-                <Input
-                    id="enroller_id"
-                    type="number"
-                    placeholder="Enter LifeWave ID..."
-                    value={formData.enroller_id || ''}
-                    onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : 1 }))}
-                    className="mt-2"
+        {/* Registration Information */}
+        <div className="space-y-4">
+            <div className="flex items-center space-x-2">
+                <Switch
+                    id="registered-under-customer"
+                    checked={isRegisteredUnderCustomer}
+                    onCheckedChange={handleRegisteredUnderCustomerChange}
                 />
+                <Label htmlFor="registered-under-customer" className="text-sm font-medium">
+                    Registered Under Customer's Lifewave Account
+                </Label>
             </div>
-            <div>
-                <Label htmlFor="enroller_name">Enroller Name</Label>
-                <Input
-                    id="enroller_name"
-                    type="text"
-                    placeholder="Enter enroller name..."
-                    value={formData.enroller_name}
-                    onChange={(e) => setFormData(prev => ({ ...prev, enroller_name: e.target.value }))}
-                    className="mt-2"
-                />
-            </div>
+            
+            {!isRegisteredUnderCustomer && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <Label htmlFor="enroller_id">Registered Lifewave ID *</Label>
+                        <Input
+                            id="enroller_id"
+                            type="number"
+                            placeholder="Enter registered Lifewave ID..."
+                            value={formData.enroller_id || ''}
+                            onChange={(e) => setFormData(prev => ({ ...prev, enroller_id: e.target.value ? parseInt(e.target.value) : 1 }))}
+                            className="mt-2"
+                        />
+                    </div>
+                    <div>
+                        <Label htmlFor="enroller_name">Registered Name *</Label>
+                        <Input
+                            id="enroller_name"
+                            type="text"
+                            placeholder="Enter registered name..."
+                            value={formData.enroller_name}
+                            onChange={(e) => setFormData(prev => ({ ...prev, enroller_name: e.target.value }))}
+                            className="mt-2"
+                        />
+                    </div>
+                </div>
+            )}
+            
+            {isRegisteredUnderCustomer && selectedClient && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="text-sm text-blue-800">
+                        <strong>Registration Details:</strong> This order will be registered under {selectedClient.client_name}'s Lifewave account (ID: {selectedClient.client_lifewave_id || 'N/A'})
+                    </div>
+                </div>
+            )}
         </div>
 
         {/* Order Items */}
@@ -770,43 +834,31 @@ export default function CreateOrderDialog({
 
         {/* Individual Optional Fields */}
         <div className="space-y-4">
-            {/* Payment Details */}
+            {/* Payment Mode */}
             <div className="border rounded-lg p-3">
                 <button
                     type="button"
-                    onClick={() => toggleField('payment_details')}
+                    onClick={() => toggleField('payment_mode')}
                     className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
                 >
-                    {expandedFields.payment_details ? (
+                    {expandedFields.payment_mode ? (
                         <ChevronDown className="h-4 w-4" />
                     ) : (
                         <ChevronRight className="h-4 w-4" />
                     )}
-                    Payment Details
+                    Payment Mode
                     <span className="text-xs text-gray-500">(Optional)</span>
                 </button>
-                {expandedFields.payment_details && (
-                    <div className="mt-3 space-y-4">
-                        <div>
-                            <Label htmlFor="payment_mode">Payment Mode</Label>
-                            <Input
-                                id="payment_mode"
-                                className="mt-2"
-                                value={formData.payment_mode}
-                                onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
-                                placeholder="e.g., Credit Card, Cash"
-                            />
-                        </div>
-                        <div>
-                            <Label htmlFor="payment_date">Payment Date</Label>
-                            <Input
-                                id="payment_date"
-                                type="date"
-                                className="mt-2"
-                                value={formData.payment_date}
-                                onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
-                            />
-                        </div>
+                {expandedFields.payment_mode && (
+                    <div className="mt-3">
+                        <Label htmlFor="payment_mode">Payment Mode</Label>
+                        <Input
+                            id="payment_mode"
+                            className="mt-2"
+                            value={formData.payment_mode}
+                            onChange={(e) => setFormData(prev => ({ ...prev, payment_mode: e.target.value }))}
+                            placeholder="e.g., Credit Card, Cash"
+                        />
                     </div>
                 )}
             </div>
@@ -864,6 +916,35 @@ export default function CreateOrderDialog({
                             className="mt-2"
                             value={formData.collection_date}
                             onChange={(e) => setFormData(prev => ({ ...prev, collection_date: e.target.value }))}
+                        />
+                    </div>
+                )}
+            </div>
+
+            {/* Payment Date */}
+            <div className="border rounded-lg p-3">
+                <button
+                    type="button"
+                    onClick={() => toggleField('payment_date')}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-700 hover:text-gray-900 w-full text-left"
+                >
+                    {expandedFields.payment_date ? (
+                        <ChevronDown className="h-4 w-4" />
+                    ) : (
+                        <ChevronRight className="h-4 w-4" />
+                    )}
+                    Payment Date
+                    <span className="text-xs text-gray-500">(Optional)</span>
+                </button>
+                {expandedFields.payment_date && (
+                    <div className="mt-3">
+                        <Label htmlFor="payment_date">Payment Date</Label>
+                        <Input
+                            id="payment_date"
+                            type="date"
+                            className="mt-2"
+                            value={formData.payment_date}
+                            onChange={(e) => setFormData(prev => ({ ...prev, payment_date: e.target.value }))}
                         />
                     </div>
                 )}

@@ -271,10 +271,10 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
     <div className="space-y-1 px-3 mt-3 md:px-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Users className="h-6 w-6 sm:h-8 sm:w-8" style={{ pointerEvents: 'none' }} />
-            Clients
+            Customers
           </h1>
           <Button
             variant="outline"
@@ -291,7 +291,7 @@ export default function ClientsPage({ user, onCreateReminder }: ClientsPageProps
             size="sm"
           >
             <Plus className="h-4 w-4" style={{ pointerEvents: 'none' }} />
-            <span className="hidden sm:inline">Create Client</span>
+            <span className="hidden sm:inline">Create New Customer</span>
             <span className="sm:hidden">Create</span>
           </Button>
         </div>

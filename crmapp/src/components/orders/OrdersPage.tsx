@@ -36,7 +36,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
   const [sortBy, setSortBy] = useState<SortBy>('enrollment_date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('DESC');
   const [showExpiredOnly, setShowExpiredOnly] = useState(false);
-  const [showCompletedOrders, setShowCompletedOrders] = useState(false);
+  const [showUncollectedOrders, setShowUncollectedOrders] = useState(false);
   
   // Date range state - initialize with current month
   const getCurrentMonthRange = () => {
@@ -214,8 +214,8 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       orders = orders.filter(order => order.is_expired);
     }
 
-    // Hide completed orders by default (when showCompletedOrders is false)
-    if (!showCompletedOrders) {
+    // Show uncollected orders only when switch is on
+    if (showUncollectedOrders) {
       orders = orders.filter(order => !order.collection_date);
     }
     
@@ -243,17 +243,17 @@ export default function OrdersPage({ user }: OrdersPageProps) {
     });
 
     return orders;
-  }, [allOrders, searchTerm, showExpiredOnly, showCompletedOrders, sortBy, sortOrder, useServerSidePagination]);
+  }, [allOrders, searchTerm, showExpiredOnly, showUncollectedOrders, sortBy, sortOrder, useServerSidePagination]);
 
 
   const filteredManagedOrders = filteredAndSortedOrders.filter(o => o.can_edit);
   const filteredSharedOrders = filteredAndSortedOrders.filter(o => !o.can_edit);
 
   return (
-    <div className="space-y-1 px-3 mt-3 md:px-4">
+    <div className="space-y-1 px-2 mt-2 sm:px-3 md:px-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 sm:gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
             <Package className="h-6 w-6 sm:h-8 sm:w-8" />
             Orders
@@ -281,7 +281,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
       </div>
 
       {/* Filters and Search */}
-      <div className="p-4 bg-gray-50 rounded-lg">
+      <div className="p-2 sm:p-4 bg-gray-50 rounded-lg">
         <div className="grid grid-cols-1 gap-2 md:grid-cols-12">
           {/* Date Range Filter */}
           <div className="md:col-span-12">
@@ -336,7 +336,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
 
           <div className="md:col-span-10 mt-1">
             
-            <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
               <div className="flex items-center gap-2">
                 <Switch
                   id="show-expired"
@@ -350,12 +350,12 @@ export default function OrdersPage({ user }: OrdersPageProps) {
               
               <div className="flex items-center gap-2">
                 <Switch
-                  id="show-completed"
-                  checked={showCompletedOrders}
-                  onCheckedChange={setShowCompletedOrders}
+                  id="show-uncollected"
+                  checked={showUncollectedOrders}
+                  onCheckedChange={setShowUncollectedOrders}
                 />
-                <label htmlFor="show-completed" className="text-sm">
-                  Show completed orders
+                <label htmlFor="show-uncollected" className="text-sm">
+                  Show uncollected orders only
                 </label>
               </div>
             </div>
@@ -381,7 +381,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="managed" className="mt-6">
+        <TabsContent value="managed" className="mt-3 sm:mt-6">
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -391,13 +391,13 @@ export default function OrdersPage({ user }: OrdersPageProps) {
               <Package className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No orders found</h3>
               <p className="mt-1 text-sm text-gray-500">
-                {searchTerm || showExpiredOnly
+                {searchTerm || showExpiredOnly || showUncollectedOrders
                   ? 'Try adjusting your search or filters.'
                   : 'Get started by creating your first order.'}
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 max-w-full">
+            <div className="grid gap-2 sm:gap-4 max-w-full">
               {filteredManagedOrders.map((order) => (
                 <OrderCard
                   key={order.id}
@@ -410,7 +410,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
           )}
         </TabsContent>
 
-        <TabsContent value="shared" className="mt-6">
+        <TabsContent value="shared" className="mt-3 sm:mt-6">
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
@@ -424,7 +424,7 @@ export default function OrdersPage({ user }: OrdersPageProps) {
               </p>
             </div>
           ) : (
-            <div className="grid gap-4 max-w-full">
+            <div className="grid gap-2 sm:gap-4 max-w-full">
               {filteredSharedOrders.map((order) => (
                 <OrderCard
                   key={order.id}

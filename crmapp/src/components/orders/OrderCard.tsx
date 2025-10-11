@@ -56,7 +56,7 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
               )}
               {order.collection_date && (
                 <Badge variant="secondary" className="bg-green-50 text-green-700 text-xs">
-                  Completed
+                  Collected
                 </Badge>
               )}
               {order.is_maintenance && (
@@ -104,35 +104,44 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
         </AlertDialog>
       )}
 
-      <CardContent className="p-4">
+      <CardContent className="p-3 sm:p-4">
         {/* Header row */}
-        <div className="flex justify-between items-start mb-3 pr-8">
+        <div className="flex justify-between items-start mb-2 sm:mb-3 pr-6 sm:pr-8">
           <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-2 flex-wrap">
-              <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
-              <span className="font-medium text-gray-900 truncate">{order.client_name}</span>
+            <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <User className="h-4 w-4 text-gray-500 flex-shrink-0" />
+                <span className="font-medium text-gray-900 truncate">{order.client_name}</span>
+              </div>
               {order.order_number && (
-                <span className="font-small text-gray-600 truncate">Order No: {order.order_number}</span>
+                <span className="text-xs sm:text-sm text-gray-600 truncate">Order No: {order.order_number}</span>
               )}
             </div>
 
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 text-sm text-gray-600 mb-2">
+            <div className="flex flex-col gap-1 text-xs sm:text-sm text-gray-600 mb-2">
               <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4 flex-shrink-0" />
-                <span className="truncate">Order Date: {new Date(order.enrollment_date).toLocaleDateString()}</span>
-                <Clock className="h-4 w-4 flex-shrink-0 ml-2" />
-                <span className="truncate">Expires: {new Date(order.expiry_date).toLocaleDateString()}</span>
+                <Calendar className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">Order Date: {new Date(order.enrollment_date).toLocaleDateString('en-GB')}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <Clock className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                <span className="truncate">Order Finishes: {new Date(order.expiry_date).toLocaleDateString('en-GB')}</span>
               </div>
             </div>
 
             {/* Enroller Information - Prominent Display */}
             {(order.enroller_name || order.enroller_id) && (
-              <div className="flex items-center gap-2 text-sm text-blue-600 mb-2">
-                <User className="h-4 w-4 flex-shrink-0" />
-                <span className="font-medium">Enroller:</span>
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-blue-600 mb-2">
+                <div className="flex items-center gap-1">
+                  <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
+                  <span className="font-medium">Order placed under</span>
+                </div>
                 <span className="truncate">
-                  {order.enroller_name || `ID: ${order.enroller_id}`}
-                  {order.enroller_name && order.enroller_id && ` (ID: ${order.enroller_id})`}
+                  {order.enroller_name === order.client_name ? (
+                    "own Lifewave account"
+                  ) : (
+                    `${order.enroller_name || `ID: ${order.enroller_id}`}${order.enroller_name && order.enroller_id ? ` (ID: ${order.enroller_id})` : ''}`
+                  )}
                 </span>
               </div>
             )}
@@ -141,29 +150,25 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
             
         {/* Not collected */}
         {!order.collection_date && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-3 w-3" />
-                <span>Not collected</span>
-              </div>
+            <div className="flex items-center gap-1 text-xs text-gray-600 mb-1">
+              <Calendar className="h-3 w-3" />
+              <span>Not collected</span>
             </div>
         )}
 
 
         {!order.payment_date && (
-          <div className="border-t pt-2 mt-2">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs text-gray-600">
-              <div className="flex items-center gap-1">
-                <CreditCard className="h-3 w-3" />
-                <span>Unpaid</span>
-              </div>
+          <div className="border-t pt-1 mt-1">
+            <div className="flex items-center gap-1 text-xs text-gray-600">
+              <CreditCard className="h-3 w-3" />
+              <span>Unpaid</span>
             </div>
           </div>
         )}
         {/* Additional Details */}
         {(order.payment_mode || order.collection_date || order.payment_date || order.shipping_location) && (
-          <div className="border-t pt-2 mt-2">
-            <div className="grid grid-cols-1 gap-2 text-xs text-gray-600">
+          <div className="border-t pt-1 mt-1">
+            <div className="flex flex-col gap-1 text-xs text-gray-600">
               {order.payment_mode && order.payment_date && (
                 <div className="flex items-center gap-1">
                   <CreditCard className="h-3 w-3 flex-shrink-0" />
@@ -187,8 +192,8 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
         )}
 
         {(order.order_items || order.notes) && (
-          <div className="border-t pt-2 mt-2">
-            <div className="grid grid-cols-1 gap-2 text-xs text-gray-600">
+          <div className="border-t pt-1 mt-1">
+            <div className="flex flex-col gap-1 text-xs text-gray-600">
               {order.order_items && (
                 <div className="flex items-center gap-1">
                   <ListChecks className="h-3 w-3 flex-shrink-0" />
@@ -207,7 +212,7 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
 
         {/* Action hint for shared orders */}
         {!order.can_edit && (
-          <div className="mt-3 text-xs text-gray-500 text-center">
+          <div className="mt-2 text-xs text-gray-500 text-center">
             This order is shared with you (read-only)
           </div>
         )}

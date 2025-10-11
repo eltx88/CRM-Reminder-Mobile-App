@@ -69,7 +69,7 @@ export default function AppLayout({
     badge?: number;
   }> => [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'clients', label: 'Clients', icon: Users },
+    { id: 'clients', label: 'Customers', icon: Users },
     { id: 'orders', label: 'Orders', icon: Package },
     { id: 'reminders', label: 'Alerts', icon: Bell, badge: remindersCount },
     { id: 'calendar', label: 'Calendar', icon: CalendarIcon },

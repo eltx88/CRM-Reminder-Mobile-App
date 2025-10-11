@@ -272,6 +272,25 @@ export default function CreateClientDialog({
                   </FormItem>
                 )}
               />
+
+          <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username*</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Enter Lifewave username here..."
+                      className="min-h-[30px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             </div>
 
             {/* Sponsor */}
@@ -282,7 +301,7 @@ export default function CreateClientDialog({
                 <FormItem>
                   <FormLabel>Sponsor</FormLabel>
                   <FormControl>
-                    <Input placeholder="Enter sponsor name" {...field} />
+                    <Input placeholder="Enter sponsor name eg...Jolene" {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -305,23 +324,7 @@ export default function CreateClientDialog({
             />
 
             {/* Notes */}
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Notes</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Additional notes about the client..."
-                      className="min-h-[80px]"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            
 
             <DialogFooter className="gap-2">
               <Button 

@@ -416,41 +416,23 @@ export type Database = {
         Returns: Json
       }
       create_order: {
-        Args:
-          | {
-              admin_uuid: string
-              client_id_param: number
-              collection_date_param?: string
-              enroller_id_param?: number
-              enroller_name_param?: string
-              enrollment_date_param: string
-              expiry_date_param: string
-              is_maintenance_param?: boolean
-              notes_param?: string
-              order_items_param?: Json
-              order_items_text_param?: string
-              order_number_param: string
-              payment_date_param?: string
-              payment_mode_param?: string
-              shipping_location_param?: string
-            }
-          | {
-              admin_uuid: string
-              client_id_param: number
-              collection_date_param?: string
-              enroller_id_param?: number
-              enroller_name_param?: string
-              enrollment_date_param: string
-              expiry_date_param: string
-              is_maintenance_param?: boolean
-              notes_param?: string
-              order_items_param?: Json
-              order_items_text_param?: string
-              order_number_param: string
-              payment_date_param?: string
-              payment_mode_param?: string
-              shipping_location_param?: string
-            }
+        Args: {
+          admin_uuid: string
+          client_id_param: number
+          collection_date_param?: string
+          enroller_id_param?: number
+          enroller_name_param?: string
+          enrollment_date_param: string
+          expiry_date_param: string
+          is_maintenance_param?: boolean
+          notes_param?: string
+          order_items_param?: Json
+          order_items_text_param?: string
+          order_number_param: string
+          payment_date_param?: string
+          payment_mode_param?: string
+          shipping_location_param?: string
+        }
         Returns: number
       }
       create_reminder: {
@@ -531,6 +513,7 @@ export type Database = {
         Returns: {
           client_email: string
           client_id: number
+          client_lifewave_id: number
           client_name: string
           client_phone: string
           has_existing_order: boolean
