@@ -50,8 +50,6 @@ export default function ResetPasswordRoute() {
         } else {
           setError('Invalid password reset link. Please request a new one.');
         }
-      } catch (err) {
-        setError('An unexpected error occurred. Please try again.');
       } finally {
         setLoading(false);
       }
