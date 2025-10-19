@@ -184,9 +184,9 @@ export function DataProvider({ children }: { children: ReactNode }) {
       }
 
       // Process reminders data to get counts by type
-      const reminders = remindersData || [];
-      const followUpCount = reminders.filter((r: any) => r.reminder_type === 'FOLLOW_UP' && r.status === 'PENDING').length;
-      const expiryCount = reminders.filter((r: any) => r.reminder_type === 'EXPIRY' && r.status === 'PENDING').length;
+      const reminders = remindersData as Reminder[];
+      const followUpCount = reminders.filter((r: Reminder) => r.reminder_type === 'FOLLOW_UP' && r.status === 'PENDING').length;
+      const expiryCount = reminders.filter((r: Reminder) => r.reminder_type === 'EXPIRY' && r.status === 'PENDING').length;
       const totalPendingReminders = followUpCount + expiryCount;
 
       // Combine dashboard data with today's reminder counts
