@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Loader2, User, Phone, Mail, Calendar, Package, Coins, FileText, AlertCircle, Edit, Save } from 'lucide-react'; 
+import { Loader2, User, Phone, Mail, Calendar, Package, Coins, FileText, AlertCircle, Edit, Save, X } from 'lucide-react'; 
 import { toast } from 'sonner';
 import { ClientDetailsDialogProps, ClientDetails, Package as PackageType } from '../interface';
 import WhatsappButton from '../WhatsappButton';
@@ -22,12 +22,13 @@ import WhatsappButton from '../WhatsappButton';
 const clientSchema = z.object({
   name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
   dob: z.string().optional(),
-  phone: z.string().optional(),
+  countryCode: z.string().min(1, 'Country code is required'),
+  phone: z.string().min(1, 'Phone number is required'),
   email: z.email('Invalid email address').optional().or(z.literal('')),
   issue: z.string().optional(),
-  notes: z.string().optional(),
-  package_id: z.string().optional(),
-  lifewave_id: z.string().optional(),
+  notes: z.string().min(1, 'Username is required'),
+  package_id: z.string().min(1, 'Package must be selected'),
+  lifewave_id: z.string().min(1, 'LifeWave ID is required'),
   sponsor: z.string().optional(),
 });
 
@@ -63,13 +64,17 @@ const fetchClientDetails = async (userId: string, clientId: number): Promise<Cli
   return data[0] as ClientDetails;
 };
 
-const updateClient = async (clientData: { name: string; dob?: string; phone?: string; email?: string; issue?: string; notes?: string; package_id?: string; lifewave_id?: string; sponsor?: string }, adminId: string, clientId: number) => {
+const updateClient = async (clientData: { name: string; dob?: string; countryCode?: string; phone?: string; email?: string; issue?: string; notes?: string; package_id?: string; lifewave_id?: string; sponsor?: string }, adminId: string, clientId: number) => {
+  const fullPhoneNumber = clientData.countryCode && clientData.phone 
+    ? `${clientData.countryCode}${clientData.phone}` 
+    : clientData.phone;
+
   const { data, error } = await supabase.rpc('update_client', {
     admin_uuid: adminId,
     client_id: clientId,
     client_name: clientData.name,
     client_dob: clientData.dob || undefined,
-    client_phone: clientData.phone || undefined,
+    client_phone: fullPhoneNumber || undefined,
     client_email: clientData.email || undefined,
     client_issue: clientData.issue || undefined,
     client_notes: clientData.notes || undefined,
@@ -126,6 +131,7 @@ export default function ClientDetailsDialog({
     defaultValues: {
       name: '',
       dob: '',
+      countryCode: '+673',
       phone: '',
       email: '',
       issue: '',
@@ -149,6 +155,7 @@ export default function ClientDetailsDialog({
       form.reset({
         name: client.name || '',
         dob: client.dob || '',
+        countryCode: '+673', // Default country code
         phone: client.phone || '',
         email: client.email || '',
         issue: client.issue || '',
@@ -169,6 +176,7 @@ export default function ClientDetailsDialog({
         form.reset({
           name: client.name || '',
           dob: client.dob || '',
+          countryCode: '+673', // Default country code
           phone: client.phone || '',
           email: client.email || '',
           issue: client.issue || '',
@@ -258,6 +266,7 @@ export default function ClientDetailsDialog({
       form.reset({
         name: client.name || '',
         dob: client.dob || '',
+        countryCode: '+673', // Default country code
         phone: client.phone || '',
         email: client.email || '',
         issue: client.issue || '',
@@ -352,17 +361,7 @@ export default function ClientDetailsDialog({
               Client Details
             </DialogTitle>
             <div className="flex items-center gap-2">
-              {isViewMode && client && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEdit}
-                  className="flex items-center gap-2"
-                >
-                  <Edit className="h-4 w-4" />
-                  Edit
-                </Button>
-              )}
+              
               <Button
                 variant="ghost"
                 size="sm"
@@ -378,6 +377,8 @@ export default function ClientDetailsDialog({
           // Edit Mode - Form
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              {/* MANDATORY FIELDS SECTION */}
+              
               {/* Name - Required */}
               <FormField
                 control={form.control}
@@ -393,32 +394,36 @@ export default function ClientDetailsDialog({
                 )}
               />
 
-              {/* DOB and Phone in a row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Country Code and Phone in a row */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="dob"
+                  name="countryCode"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Date of Birth</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="date" 
-                          placeholder="Enter date of birth" 
-                          {...field}
-                        />
-                      </FormControl>
+                      <FormLabel>Country Code *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select country code" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="+673">🇧🇳 +673 (Brunei)</SelectItem>
+                          <SelectItem value="+60">🇲🇾 +60 (Malaysia)</SelectItem>
+                          <SelectItem value="+65">🇸🇬 +65 (Singapore)</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
                 <FormField
                   control={form.control}
                   name="phone"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Phone</FormLabel>
+                      <FormLabel>Phone Number *</FormLabel>
                       <FormControl>
                         <Input placeholder="Enter phone number" {...field} />
                       </FormControl>
@@ -427,6 +432,94 @@ export default function ClientDetailsDialog({
                   )}
                 />
               </div>
+
+              {/* LifeWave ID and Username in a row */}
+              <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="lifewave_id"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>LifeWave ID *</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          placeholder="Enter LifeWave ID" 
+                          className="w-full"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="notes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Username *</FormLabel>
+                      <FormControl>
+                        <Input type="text" placeholder="Enter Lifewave username" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {/* Package - Required */}
+              <FormField
+                control={form.control}
+                name="package_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Package *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                      <FormControl>
+                        <SelectTrigger className="w-full">
+                          <SelectValue placeholder="Select a package" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {packagesLoading ? (
+                          <SelectItem value="loading" disabled>Loading packages...</SelectItem>
+                        ) : packages && packages.length > 0 ? (
+                          packages.map((pkg) => (
+                            <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                              {pkg.name}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="no-packages" disabled>No packages available</SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* OPTIONAL FIELDS SECTION */}
+              
+              {/* Date of Birth */}
+              <FormField
+                control={form.control}
+                name="dob"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date of Birth</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="date" 
+                        placeholder="Select date of birth" 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               {/* Email */}
               <FormField
@@ -442,55 +535,6 @@ export default function ClientDetailsDialog({
                   </FormItem>
                 )}
               />
-
-              {/* Package and LifeWave ID in a row */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="package_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Package</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || undefined}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a package" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                        <SelectGroup>
-                          <SelectLabel>Select a Package</SelectLabel>
-                          {packages?.map((pkg) => (
-                            <SelectItem key={pkg.id} value={pkg.id.toString()}>
-                              {pkg.name}
-                            </SelectItem>
-                          ))}
-                        </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="lifewave_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>LifeWave ID</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          placeholder="Enter LifeWave ID" 
-                          {...field}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               {/* Sponsor */}
               <FormField
@@ -516,25 +560,6 @@ export default function ClientDetailsDialog({
                     <FormLabel>Issue</FormLabel>
                     <FormControl>
                       <Input placeholder="Describe any issues or concerns" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              {/* Notes */}
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Username</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Update Lifewave Username here..."
-                        className="min-h-[30px]"
-                        {...field} 
-                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -681,9 +706,21 @@ export default function ClientDetailsDialog({
 
         {/* Actions for view mode */}
         {!isEditMode && (
-          <div className="flex justify-end gap-2 pt-4 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Close
+          <div className="flex justify-end md:justify-between gap-2 pt-4 border-t">
+            {isViewMode && client && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEdit}
+                  className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2 w-full md:w-auto hover:text-white h-9"
+                >
+                  <Edit className="h-5 w-5 text-white" />
+                  Edit
+                </Button>
+              )}
+              
+            <Button variant="outline" className="w-full md:w-auto md:ml-auto bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 w-full md:w-auto hover:text-white h-9" onClick={() => onOpenChange(false)}>
+              Exit
             </Button>
           </div>
         )}

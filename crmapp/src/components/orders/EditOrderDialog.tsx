@@ -938,7 +938,7 @@ export default function EditOrderDialog({
           {/* Dates */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <Label htmlFor="enrollment_date">Enrollment Date *</Label>
+              <Label htmlFor="enrollment_date">Order Enrollment Date *</Label>
               <Input
                 className="mt-2"
                 id="enrollment_date"

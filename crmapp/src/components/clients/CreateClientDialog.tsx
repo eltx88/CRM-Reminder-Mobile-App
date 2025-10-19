@@ -22,7 +22,7 @@ const clientSchema = z.object({
   phone: z.string().min(1, 'Phone number is required'),
   email: z.email('Invalid email address').optional().or(z.literal('')),
   issue: z.string().optional(),
-  notes: z.string().optional(),
+  notes: z.string().min(1, 'Username is required'),
   package_id: z.string().min(1, 'Package must be selected'),
   lifewave_id: z.string().min(1, 'LifeWave ID is required'),
   sponsor: z.string().optional(),
@@ -154,6 +154,8 @@ export default function CreateClientDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {/* MANDATORY FIELDS SECTION */}
+            
             {/* Name - Required */}
             <FormField
               control={form.control}
@@ -173,18 +175,58 @@ export default function CreateClientDialog({
               )}
             />
 
-            {/* Date of Birth and Phone in a row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Country Code and Phone in a row */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
-                name="dob"
+                name="countryCode"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Date of Birth</FormLabel>
+                    <FormLabel>Country Code *</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select country code" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="+673">🇧🇳 +673 (Brunei)</SelectItem>
+                        <SelectItem value="+60">🇲🇾 +60 (Malaysia)</SelectItem>
+                        <SelectItem value="+65">🇸🇬 +65 (Singapore)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Phone Number *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter phone number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            {/* LifeWave ID and Username in a row */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="lifewave_id"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>LifeWave ID *</FormLabel>
                     <FormControl>
                       <Input 
-                        type="date" 
-                        placeholder="Select date of birth" 
+                        className="w-full"
+                        type="number" 
+                        placeholder="Enter LifeWave ID" 
                         {...field}
                       />
                     </FormControl>
@@ -192,44 +234,72 @@ export default function CreateClientDialog({
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="notes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Username *</FormLabel>
+                    <FormControl>
+                      <Input type="text" placeholder="Enter Lifewave username" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
-              <div className="space-y-2">
-                <FormField
-                  control={form.control}
-                  name="countryCode"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Country Code *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select country code" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="+673">🇧🇳 +673 (Brunei)</SelectItem>
-                          <SelectItem value="+60">🇲🇾 +60 (Malaysia)</SelectItem>
-                          <SelectItem value="+65">🇸🇬 +65 (Singapore)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone Number *</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-2 gap-4"> 
+            {/* Package - Required */}
+            <FormField
+              control={form.control}
+              name="package_id"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Package *</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value || undefined}>
+                    <FormControl>
+                      <SelectTrigger className="w-full">
+                        <SelectValue placeholder="Select a package" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {packagesLoading ? (
+                        <SelectItem value="loading" disabled>Loading packages...</SelectItem>
+                      ) : packages && packages.length > 0 ? (
+                        packages.map((pkg) => (
+                          <SelectItem key={pkg.id} value={pkg.id.toString()}>
+                            {pkg.name}
+                          </SelectItem>
+                        ))
+                      ) : (
+                        <SelectItem value="no-packages" disabled>No packages available</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Date of Birth */}
+            <FormField
+              control={form.control}
+              name="dob"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Date of Birth</FormLabel>
+                  <FormControl>
+                    <Input 
+                      type="date" 
+                      placeholder="Select date of birth" 
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             </div>
 
             {/* Email */}
@@ -247,76 +317,6 @@ export default function CreateClientDialog({
               )}
             />
 
-            {/* Package must be selected and LifeWave ID in a row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="package_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Package *</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select a package" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {packagesLoading ? (
-                          <SelectItem value="loading" disabled>Loading packages...</SelectItem>
-                        ) : packages && packages.length > 0 ? (
-                          packages.map((pkg) => (
-                            <SelectItem key={pkg.id} value={pkg.id.toString()}>
-                              {pkg.name}
-                            </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="no-packages" disabled>No packages available</SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="lifewave_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>LifeWave ID *</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        placeholder="Enter LifeWave ID" 
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-          <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Username*</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Enter Lifewave username here..."
-                      className="min-h-[30px]"
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            </div>
 
             {/* Sponsor */}
             <FormField
@@ -327,7 +327,7 @@ export default function CreateClientDialog({
                   <FormLabel>Sponsor</FormLabel>
                   <FormControl>
                     <Input 
-                      placeholder="Enter sponsor name eg...Jolene" 
+                      placeholder="Enter sponsor name" 
                       {...field}
                       onChange={(e) => handleSponsorChange(e.target.value)}
                     />
@@ -351,9 +351,6 @@ export default function CreateClientDialog({
                 </FormItem>
               )}
             />
-
-            {/* Notes */}
-            
 
             <DialogFooter className="gap-2">
               <Button 

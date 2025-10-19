@@ -134,15 +134,8 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
               <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-xs sm:text-sm text-blue-600 mb-2">
                 <div className="flex items-center gap-1">
                   <User className="h-3 w-3 sm:h-4 sm:w-4 flex-shrink-0" />
-                  <span className="font-medium">Order placed under</span>
+                  <span className="font-medium">Order placed under {order.enroller_name === order.client_name ? 'own Lifewave account' : `${order.enroller_name || `ID: ${order.enroller_id}`}${order.enroller_name && order.enroller_id ? ` (ID: ${order.enroller_id})` : ''}`}</span>
                 </div>
-                <span className="truncate">
-                  {order.enroller_name === order.client_name ? (
-                    "own Lifewave account"
-                  ) : (
-                    `${order.enroller_name || `ID: ${order.enroller_id}`}${order.enroller_name && order.enroller_id ? ` (ID: ${order.enroller_id})` : ''}`
-                  )}
-                </span>
               </div>
             )}
           </div>
