@@ -25,12 +25,15 @@ export default function ResetPasswordPage({ onLogin }: ResetPasswordPageProps) {
   // Replace with your actual hCaptcha site key from hCaptcha dashboard
   const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY;
 
+  // In ResetPasswordPage.tsx, update the useEffect:
   useEffect(() => {
     // Check if user is already logged in
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
-        onLogin(user);
+        // User is already authenticated via the reset link
+        console.log('User authenticated via reset link:', user);
+        // Don't automatically call onLogin here, let them set their new password first
       }
     };
     checkUser();
