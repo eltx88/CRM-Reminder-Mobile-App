@@ -29,6 +29,7 @@ const clientSchema = z.object({
   package_id: z.string().min(1, 'Package must be selected'),
   lifewave_id: z.string().min(1, 'LifeWave ID is required'),
   sponsor: z.string().optional(),
+  created_at: z.string().optional(),
 });
 
 type ClientFormData = z.infer<typeof clientSchema>;
@@ -63,7 +64,31 @@ const fetchClientDetails = async (userId: string, clientId: number): Promise<Cli
   return data[0] as ClientDetails;
 };
 
-const updateClient = async (clientData: { name: string; dob?: string; countryCode?: string; phone?: string; email?: string; issue?: string; notes?: string; package_id?: string; lifewave_id?: string; sponsor?: string }, adminId: string, clientId: number) => {
+// Helper function to parse phone number and extract country code and phone number
+const parsePhoneNumber = (fullPhone: string | null | undefined): { countryCode: string; phone: string } => {
+  if (!fullPhone) {
+    return { countryCode: '+673', phone: '' };
+  }
+
+  // Remove spaces and normalize
+  const normalized = fullPhone.replace(/\s+/g, '');
+  
+  // List of supported country codes (must be checked in order from longest to shortest)
+  const countryCodes = ['+673', '+60', '+65'];
+  
+  // Try to match each country code
+  for (const code of countryCodes) {
+    if (normalized.startsWith(code)) {
+      const phoneNumber = normalized.substring(code.length);
+      return { countryCode: code, phone: phoneNumber };
+    }
+  }
+  
+  // If no country code found, default to +673 and return the whole number
+  return { countryCode: '+673', phone: normalized.replace(/^\+/, '') };
+};
+
+const updateClient = async (clientData: { name: string; dob?: string; countryCode?: string; phone?: string; email?: string; issue?: string; notes?: string; package_id?: string; lifewave_id?: string; sponsor?: string; created_at?: string }, adminId: string, clientId: number) => {
   const fullPhoneNumber = clientData.countryCode && clientData.phone 
     ? `${clientData.countryCode}${clientData.phone}` 
     : clientData.phone;
@@ -80,6 +105,7 @@ const updateClient = async (clientData: { name: string; dob?: string; countryCod
     client_package_id: clientData.package_id ? parseInt(clientData.package_id) : undefined,
     client_lifewave_id: clientData.lifewave_id ? parseInt(clientData.lifewave_id) : undefined,
     client_sponsor: clientData.sponsor || undefined,
+    client_created_at: clientData.created_at || undefined,
   });
 
   if (error) {
@@ -138,6 +164,7 @@ export default function ClientDetailsDialog({
       package_id: '',
       lifewave_id: '',
       sponsor: '',
+      created_at: '',
     },
   });
 
@@ -151,17 +178,19 @@ export default function ClientDetailsDialog({
   // Update form when client changes (for edit mode)
   useEffect(() => {
     if (client && isEditMode) {
+      const { countryCode, phone } = parsePhoneNumber(client.phone);
       form.reset({
         name: client.name || '',
         dob: client.dob || '',
-        countryCode: '+673', // Default country code
-        phone: client.phone || '',
+        countryCode,
+        phone,
         email: client.email || '',
         issue: client.issue || '',
         notes: client.notes || '',
         package_id: client.package_id?.toString() || '',
         lifewave_id: client.lifewave_id?.toString() || '',
         sponsor: client.sponsor || '',
+        created_at: client.created_at ? new Date(client.created_at).toISOString().split('T')[0] : '',
       });
       setHasUnsavedChanges(false);
     }
@@ -172,17 +201,19 @@ export default function ClientDetailsDialog({
     if (client && isEditMode) {
       // Use setTimeout to ensure the form is ready
       setTimeout(() => {
+        const { countryCode, phone } = parsePhoneNumber(client.phone);
         form.reset({
           name: client.name || '',
           dob: client.dob || '',
-          countryCode: '+673', // Default country code
-          phone: client.phone || '',
+          countryCode,
+          phone,
           email: client.email || '',
           issue: client.issue || '',
           notes: client.notes || '',
           package_id: client.package_id?.toString() || '',
           lifewave_id: client.lifewave_id?.toString() || '',
           sponsor: client.sponsor || '',
+          created_at: client.created_at ? new Date(client.created_at).toISOString().split('T')[0] : '',
         });
       }, 0);
     }
@@ -194,12 +225,17 @@ export default function ClientDetailsDialog({
     if (client && isEditMode) {
       const hasChanges = Object.keys(watchedValues).some(key => {
         const formValue = watchedValues[key as keyof ClientFormData];
-        const clientValue = client[key as keyof typeof client];
+        let clientValue: string | undefined = '';
         
-        if (key === 'package_id' || key === 'lifewave_id') {
-          return formValue !== (clientValue?.toString() || '');
+        if (key === 'created_at') {
+          clientValue = client.created_at ? new Date(client.created_at).toISOString().split('T')[0] : '';
+        } else if (key === 'package_id' || key === 'lifewave_id') {
+          clientValue = client[key as keyof typeof client]?.toString() || '';
+        } else {
+          clientValue = (client[key as keyof typeof client] || '') as string;
         }
-        return formValue !== (clientValue || '');
+        
+        return formValue !== clientValue;
       });
       setHasUnsavedChanges(hasChanges);
     }
@@ -262,17 +298,19 @@ export default function ClientDetailsDialog({
     setIsEditMode(true);
     // Reset form with current client data when entering edit mode
     if (client) {
+      const { countryCode, phone } = parsePhoneNumber(client.phone);
       form.reset({
         name: client.name || '',
         dob: client.dob || '',
-        countryCode: '+673', // Default country code
-        phone: client.phone || '',
+        countryCode,
+        phone,
         email: client.email || '',
         issue: client.issue || '',
         notes: client.notes || '',
         package_id: client.package_id?.toString() || '',
         lifewave_id: client.lifewave_id?.toString() || '',
         sponsor: client.sponsor || '',
+        created_at: client.created_at ? new Date(client.created_at).toISOString().split('T')[0] : '',
       });
     }
   };
@@ -520,6 +558,25 @@ export default function ClientDetailsDialog({
                 )}
               />
 
+              {/* Date Enrolled */}
+              <FormField
+                control={form.control}
+                name="created_at"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date Enrolled</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="date" 
+                        placeholder="Select enrollment date" 
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               {/* Email */}
               <FormField
                 control={form.control}
@@ -705,20 +762,24 @@ export default function ClientDetailsDialog({
 
         {/* Actions for view mode */}
         {!isEditMode && (
-          <div className="flex justify-end md:justify-between gap-2 pt-4 border-t">
+          <div className="flex flex-col sm:flex-row justify-between gap-2 pt-4 border-t">
             {isViewMode && client && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleEdit}
-                  className="bg-blue-500 hover:bg-blue-600 text-white flex items-center gap-2 w-full md:w-auto hover:text-white h-9"
-                >
-                  <Edit className="h-5 w-5 text-white" />
-                  Edit
-                </Button>
-              )}
-              
-            <Button variant="outline" className="w-full md:w-auto md:ml-auto bg-red-500 hover:bg-red-600 text-white flex items-center gap-2 w-full md:w-auto hover:text-white h-9" onClick={() => onOpenChange(false)}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleEdit}
+                className="bg-blue-500 hover:bg-blue-600 text-white flex items-center justify-center gap-2 w-full sm:w-auto hover:text-white h-9"
+              >
+                <Edit className="h-5 w-5 text-white" />
+                Edit
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              className="w-full sm:w-auto bg-red-500 hover:bg-red-600 text-white flex items-center justify-center gap-2 hover:text-white h-9" 
+              onClick={() => onOpenChange(false)}
+            >
               Exit
             </Button>
           </div>

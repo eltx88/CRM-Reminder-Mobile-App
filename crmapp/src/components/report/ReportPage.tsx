@@ -300,12 +300,12 @@ export default function ReportPage({ user }: ReportPageProps) {
     <div className="space-y-1 px-3 mt-3 md:px-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-        <div className="flex items-center gap-2">
+        {/* <div className="flex items-center gap-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
             <FileText className="h-6 w-6 sm:h-8 sm:w-8" style={{ pointerEvents: 'none' }} />
             Reports
           </h1>
-        </div>
+        </div> */}
       </div>
 
       {/* Report Configuration Card */}

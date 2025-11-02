@@ -696,6 +696,7 @@ export type Database = {
       update_client: {
         Args: {
           admin_uuid: string
+          client_created_at?: string
           client_dob?: string
           client_email?: string
           client_id: number
