@@ -20,7 +20,7 @@ import {
   Users, 
   Bell, 
   LogOut, 
-  CalendarIcon,
+  Book,
   Settings,
   Package
 } from 'lucide-react';
@@ -72,7 +72,7 @@ export default function AppLayout({
     { id: 'clients', label: 'Customers', icon: Users },
     { id: 'orders', label: 'Orders', icon: Package },
     { id: 'reminders', label: 'Alerts', icon: Bell, badge: remindersCount },
-    { id: 'calendar', label: 'Calendar', icon: CalendarIcon },
+    { id: 'report', label: 'Report', icon: Book },
   ], [remindersCount]);
 
   return (

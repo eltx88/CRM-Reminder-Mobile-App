@@ -231,6 +231,7 @@ export type Database = {
           client_id: number
           collection_date: string | null
           collection_status: string
+          created_date: string | null
           enroller_id: number | null
           enroller_name: string | null
           enrollment_date: string
@@ -249,6 +250,7 @@ export type Database = {
           client_id: number
           collection_date?: string | null
           collection_status?: string
+          created_date?: string | null
           enroller_id?: number | null
           enroller_name?: string | null
           enrollment_date?: string
@@ -267,6 +269,7 @@ export type Database = {
           client_id?: number
           collection_date?: string | null
           collection_status?: string
+          created_date?: string | null
           enroller_id?: number | null
           enroller_name?: string | null
           enrollment_date?: string
@@ -446,10 +449,7 @@ export type Database = {
         }
         Returns: Json
       }
-      deactivate_old_clients: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
+      deactivate_old_clients: { Args: never; Returns: undefined }
       delete_client: {
         Args: { admin_uuid: string; client_id_param: number }
         Returns: Json
@@ -492,6 +492,21 @@ export type Database = {
         Args: { admin_uuid: string; p_client_id: number }
         Returns: Json
       }
+      get_client_signups_report: {
+        Args: {
+          admin_uuid: string
+          end_date: string
+          include_inactive?: boolean
+          start_date: string
+        }
+        Returns: {
+          created_at: string
+          lifewave_id: number
+          name: string
+          notes: string
+          package_name: string
+        }[]
+      }
       get_client_with_package_details: {
         Args: { admin_uuid_param: string; client_id_param: number }
         Returns: {
@@ -504,10 +519,7 @@ export type Database = {
           package_points: number
         }[]
       }
-      get_clients_data: {
-        Args: { admin_uuid: string }
-        Returns: Json
-      }
+      get_clients_data: { Args: { admin_uuid: string }; Returns: Json }
       get_clients_with_packages_for_admin: {
         Args: { admin_uuid_param: string }
         Returns: {
@@ -526,10 +538,7 @@ export type Database = {
         Args: { admin_uuid: string; end_date?: string; start_date?: string }
         Returns: Json
       }
-      get_inactive_clients_data: {
-        Args: { admin_uuid: string }
-        Returns: Json
-      }
+      get_inactive_clients_data: { Args: { admin_uuid: string }; Returns: Json }
       get_order_details: {
         Args: { admin_uuid: string; order_id_param: number }
         Returns: {
@@ -599,16 +608,25 @@ export type Database = {
         }
         Returns: Json
       }
-      get_packages: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
+      get_orders_report: {
+        Args: { admin_uuid: string; end_date: string; start_date: string }
+        Returns: {
+          client_id: number
+          enrolled_id: number
+          enrolled_name: string
+          enrollment_date: string
+          name: string
+          order_items: string
+          package_name: string
+        }[]
       }
+      get_packages: { Args: never; Returns: Json }
       get_pending_reminder_count: {
         Args: { admin_uuid: string }
         Returns: number
       }
       get_products: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           duration: string
           id: number
@@ -629,10 +647,7 @@ export type Database = {
         Args: { admin_uuid: string; p_reminder_id: number }
         Returns: Json
       }
-      get_reminder_stats: {
-        Args: { admin_uuid: string }
-        Returns: Json
-      }
+      get_reminder_stats: { Args: { admin_uuid: string }; Returns: Json }
       get_reminders_for_admin: {
         Args: {
           admin_uuid: string

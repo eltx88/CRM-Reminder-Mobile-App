@@ -11,10 +11,10 @@ import ClientsPage from '@/components/clients/ClientsPage';
 import RemindersPage from '@/components/reminders/RemindersPage';
 import OrdersPage from '@/components/orders/OrdersPage';
 import { DataProvider } from '@/contexts/DataContext';
+import ReportPage from '@/components/report/ReportPage';
 
 // Placeholder components for other views
-const CalendarPage = () => <div className="p-4">Calendar Coming Soon</div>;
-type View = 'dashboard' | 'clients' | 'reminders' | 'calendar' | 'client-detail'| 'orders';
+type View = 'dashboard' | 'clients' | 'reminders' | 'report' | 'client-detail'| 'orders';
 
 // Data initialization component
 function AppContent() {
@@ -104,8 +104,8 @@ function AppContent() {
         onCreateDialogChange={setCreateReminderOpen}
         createSeed={createReminderSeed || undefined}
       />;
-      case 'calendar':
-        return <CalendarPage />;
+      case 'report':
+        return <ReportPage user={user!} />;
       default:
         return <DashboardPage user={user!} />;
     }
