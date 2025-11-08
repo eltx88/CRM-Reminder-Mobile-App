@@ -1,3 +1,6 @@
+Need to install the following packages:
+supabase@2.54.11
+Ok to proceed? (y) 
 export type Json =
   | string
   | number
@@ -501,6 +504,8 @@ export type Database = {
         }
         Returns: {
           created_at: string
+          last_order_date: string
+          last_order_number: string
           lifewave_id: number
           name: string
           notes: string

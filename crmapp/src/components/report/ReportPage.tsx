@@ -31,6 +31,8 @@ interface ClientSignupReportRow {
   package_name: string | null;
   notes: string | null;
   lifewave_id: number | null;
+  last_order_date: string | null;
+  last_order_number: string | null;
 }
 
 interface OrderReportRow {
@@ -207,11 +209,13 @@ export default function ReportPage({ user }: ReportPageProps) {
           'Name',
           'Package',
           'Username',
-          'Lifewave Member No'
+          'Lifewave Member No',
+          'Last Order Date',
+          'Last Order Number'
         ];
 
         // Field mapping for client signups
-        // RPC returns: created_at, name, package_name, notes, lifewave_id
+        // RPC returns: created_at, name, package_name, notes, lifewave_id, last_order_date, last_order_number
         fieldMapping = (row: ClientSignupReportRow | OrderReportRow) => {
           const clientRow = row as ClientSignupReportRow;
           return [
@@ -219,7 +223,9 @@ export default function ReportPage({ user }: ReportPageProps) {
             clientRow.name || '', // Name
             clientRow.package_name || '', // Package
             clientRow.notes || '', // Username (notes field)
-            String(clientRow.lifewave_id || '') // Lifewave Member No
+            String(clientRow.lifewave_id || ''), // Lifewave Member No
+            clientRow.last_order_date || 'N/A', // Last Order Date
+            clientRow.last_order_number || 'N/A' // Last Order Number
           ];
         };
 
