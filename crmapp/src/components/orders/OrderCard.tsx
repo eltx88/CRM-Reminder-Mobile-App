@@ -165,7 +165,7 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
               {order.payment_mode && order.payment_date && (
                 <div className="flex items-center gap-1">
                   <CreditCard className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">Paid with {order.payment_mode} on {new Date(order.payment_date).toLocaleDateString()}</span>
+                  <span className="truncate">Paid with {order.payment_mode} on {new Date(order.payment_date).toLocaleDateString('en-GB')}</span>
                 </div>
               )}
               {order.shipping_location && (
@@ -177,7 +177,7 @@ export default function OrderCard({ order, onSelect, onDelete }: OrderCardProps)
               {order.collection_date && (
                 <div className="flex items-center gap-1">
                   <Calendar className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">Collection: {new Date(order.collection_date).toLocaleDateString()}</span>
+                  <span className="truncate">Collection: {new Date(order.collection_date).toLocaleDateString('en-GB')}</span>
                 </div>
               )}
             </div>

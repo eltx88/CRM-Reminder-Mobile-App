@@ -94,7 +94,7 @@ export default function ReminderCard({
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-600">
                   <Calendar className="h-4 w-4" />
-                  <span>{new Date(reminder.trigger_date).toLocaleDateString()}</span>
+                  <span>{new Date(reminder.trigger_date).toLocaleDateString('en-GB')}</span>
                   <Clock className="h-4 w-4 ml-3" />
                   <span className="capitalize">{reminder.status.toLowerCase()}</span>
                 </div>

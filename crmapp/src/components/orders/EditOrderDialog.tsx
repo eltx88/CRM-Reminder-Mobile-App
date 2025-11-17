@@ -244,9 +244,10 @@ export default function EditOrderDialog({
 
   // Calculate expiry date based on order items
   const calculateExpiryDate = useCallback(() => {
-    if (!formData.enrollment_date) return '';
+    const baselineDateString = formData.collection_date || formData.enrollment_date;
+    if (!baselineDateString) return '';
 
-    const enrollmentDate = new Date(formData.enrollment_date);
+    const baselineDate = new Date(baselineDateString);
     let maxDurationMonths = 0;
 
     // Check if X39 is in the order items
@@ -277,13 +278,13 @@ export default function EditOrderDialog({
     }
 
     if (maxDurationMonths > 0) {
-      const expiryDate = new Date(enrollmentDate);
+      const expiryDate = new Date(baselineDate);
       expiryDate.setMonth(expiryDate.getMonth() + maxDurationMonths);
       return expiryDate.toISOString().split('T')[0];
     }
 
     return '';
-  }, [formData.enrollment_date, formData.order_items, products]);
+  }, [formData.collection_date, formData.enrollment_date, formData.order_items, products]);
 
   // Load data and populate form when dialog opens
   useEffect(() => {
@@ -563,7 +564,15 @@ export default function EditOrderDialog({
         });
       }
     }
-  }, [formData.order_items, formData.enrollment_date, formData.expiry_date, products, isExpiryDateManuallyEdited, calculateExpiryDate]);
+  }, [
+    formData.order_items,
+    formData.enrollment_date,
+    formData.collection_date,
+    formData.expiry_date,
+    products,
+    isExpiryDateManuallyEdited,
+    calculateExpiryDate
+  ]);
 
   if (!order) return null;
 
